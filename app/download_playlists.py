@@ -1,55 +1,20 @@
 import subprocess
 import os
-import json
-import yaml
 import argparse
-
-# CONFIG_DIR = os.path.expanduser("~/.config/universal-dj-tool/")
-CONFIG_DIR = os.path.expanduser("./")
-PLAYLISTS_FILE = os.path.join(CONFIG_DIR, "playlists.json")
-CONFIG_FILE = os.path.join(CONFIG_DIR, "config.yaml")
-
-
-def ensure_config_files():
-    if not os.path.exists(CONFIG_DIR):
-        os.makedirs(CONFIG_DIR)
-
-    if not os.path.exists(PLAYLISTS_FILE):
-        with open(PLAYLISTS_FILE, 'w') as f:
-            json.dump(categories, f, ensure_ascii=False, indent=4)
-
-    if not os.path.exists(CONFIG_FILE):
-        default_config = {
-            'music_directory': os.path.expanduser("~/Music"),
-            'download_format': 'm4a'
-        }
-        with open(CONFIG_FILE, 'w') as f:
-            yaml.dump(default_config, f)
-
-
-def load_config():
-    with open(CONFIG_FILE, 'r') as f:
-        return yaml.safe_load(f)
-
-
-def save_config(config):
-    with open(CONFIG_FILE, 'w') as f:
-        yaml.dump(config, f)
-
-
-def load_playlists():
-    with open(PLAYLISTS_FILE, 'r') as f:
-        return json.load(f)
-
-
-def save_playlists(playlists):
-    with open(PLAYLISTS_FILE, 'w') as f:
-        json.dump(playlists, f, ensure_ascii=False, indent=4)
+from utils import (
+    ensure_config_files,
+    load_config,
+    save_config,
+    load_playlists,
+    save_playlists,
+)
 
 
 def download_playlists(
     music_directory, download_format, category_name, playlists, single_update_playlist
 ):
+    print(music_directory)
+    print(category_name)
     for playlist_name, link in playlists.items():
         if (
             single_update_playlist == ""
