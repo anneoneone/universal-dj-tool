@@ -4,104 +4,107 @@ from utils import load_playlists, save_playlists, load_config
 from download_playlists import download_playlists
 
 
-# Funktion, die ausgeführt wird, wenn ein Treeview-Item ausgewählt wird
-def on_select(event):
-    selected_item = tree.focus()  # Gibt den selektierten Item-Schlüssel zurück
-    item_text = tree.item(selected_item, "text")  # Holt den Text des ausgewählten Items
+import subprocess
+import threading
 
-    parent_item = tree.parent(selected_item)  # Holt den Parent-Item-Schlüssel (Kategorie)
 
-    if parent_item:  # Wenn es einen Parent gibt, ist es ein Sub-Item
+def run_tidal_dl(link, download_dir, text_widget):
+    process = subprocess.Popen(
+        ["tidal-dl", "-l", link, "-o", download_dir],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1
+    )
+
+    def update_text_widget(stream):
+        for line in iter(stream.readline, ""):
+            text_widget.insert(tk.END, line)
+            text_widget.see(tk.END)  # Scroll to the end of the Text widget
+        stream.close()
+
+    # Start threads to capture both stdout and stderr
+    threading.Thread(target=update_text_widget, args=(process.stdout,)).start()
+    threading.Thread(target=update_text_widget, args=(process.stderr,)).start()
+
+    process.wait()  # Wait for the process to complete
+    text_widget.insert(tk.END, "\nDownload completed.\n")
+    text_widget.see(tk.END)
+
+
+def download(config, playlists_data, filter_entry, text_widget):
+    def download_thread():
+        music_directory = config['music_directory']
+
+        for category_name, category_playlists in playlists_data.items():
+            for link_name, link in category_playlists.items():
+                if filter_entry.get().lower() in link_name.lower():
+                    download_dir = f"{music_directory}/{category_name}/{link_name}"
+                    run_tidal_dl(link, download_dir, text_widget)
+
+    # Run the download in a separate thread to avoid freezing the GUI
+    threading.Thread(target=download_thread).start()
+
+
+def on_select(event, tree, folder_entry, url_entry, playlists_data):
+    selected_item = tree.focus()
+    item_text = tree.item(selected_item, "text")
+    parent_item = tree.parent(selected_item)
+
+    folder_entry.delete(0, tk.END)
+    url_entry.delete(0, tk.END)
+
+    if parent_item:
         url = playlists_data[tree.item(parent_item, 'text')][item_text]
-
-        folder_entry.delete(0, tk.END)
-        folder_entry.insert(0, item_text)  # Füge den Namen des Sub-Items ein
-
-        url_entry.delete(0, tk.END)
+        folder_entry.insert(0, item_text)
         url_entry.insert(0, url)
-    else:  # Wenn es keinen Parent gibt, ist es eine Kategorie
-        folder_entry.delete(0, tk.END)
-        folder_entry.insert(0, item_text)  # Füge den Namen der Kategorie ein
-
-        url_entry.delete(0, tk.END)
+    else:
+        folder_entry.insert(0, item_text)
 
 
-# Bearbeiten der Playlists
-def edit_item():
-    selected_item = tree.focus()  # Das aktuell ausgewählte Element im Treeview
-    item_text = tree.item(selected_item, 'text')  # Der Text des ausgewählten Elements
-
-    parent_item = tree.parent(selected_item)  # Der Parent des ausgewählten Elements (falls vorhanden)
+def edit_item(tree, folder_entry, url_entry, playlists_data):
+    selected_item = tree.focus()
+    item_text = tree.item(selected_item, 'text')
+    parent_item = tree.parent(selected_item)
 
     new_folder_name = folder_entry.get()
     new_url = url_entry.get()
 
-    if parent_item:  # Es ist ein Sub-Item
+    if parent_item:
         folder = tree.item(parent_item, 'text')
-
-        # Aktualisiere die Werte im JSON
         playlists_data[folder][new_folder_name] = new_url
 
-        # Entferne das alte Sub-Item
         if new_folder_name != item_text:
             del playlists_data[folder][item_text]
 
-        # Speichere die aktualisierte JSON-Datei
         save_playlists(playlists_data)
-
-        # Aktualisiere den Treeview
         tree.item(selected_item, text=new_folder_name)
-
-    else:  # Es ist eine Kategorie
-        # Aktualisiere die Kategorie im JSON
+    else:
         if new_folder_name != item_text:
             playlists_data[new_folder_name] = playlists_data.pop(item_text)
-
-            # Speichere die aktualisierte JSON-Datei
             save_playlists(playlists_data)
-
-            # Aktualisiere den Treeview
             tree.item(selected_item, text=new_folder_name)
 
 
-# Entfernen der Playlists
-def remove_item():
-    selected_item = tree.focus()  # Das aktuell ausgewählte Element im Treeview
-    item_text = tree.item(selected_item, 'text')  # Der Text des ausgewählten Elements
+def remove_item(tree, playlists_data):
+    selected_item = tree.focus()
+    item_text = tree.item(selected_item, 'text')
+    parent_item = tree.parent(selected_item)
 
-    parent_item = tree.parent(selected_item)  # Der Parent des ausgewählten Elements (falls vorhanden)
-
-    if parent_item:  # Es ist ein Sub-Item
+    if parent_item:
         folder = tree.item(parent_item, 'text')
-        
-        # Entferne das Sub-Item aus dem JSON
         del playlists_data[folder][item_text]
-        
-        # Falls der Ordner jetzt leer ist, entferne ihn auch
         if not playlists_data[folder]:
             del playlists_data[folder]
-
-        # Speichere die aktualisierte JSON-Datei
-        save_playlists(playlists_data)
-
-        # Entferne das Sub-Item aus dem Treeview
-        tree.delete(selected_item)
-
-    else:  # Es ist eine Kategorie
-        # Entferne die Kategorie aus dem JSON
+    else:
         del playlists_data[item_text]
 
-        # Speichere die aktualisierte JSON-Datei
-        save_playlists(playlists_data)
-
-        # Entferne die Kategorie aus dem Treeview
-        tree.delete(selected_item)
+    save_playlists(playlists_data)
+    tree.delete(selected_item)
 
 
-# Hinzufügen einer neuen Playlist oder Kategorie
-def add_item():
-    selected_item = tree.focus()  # Das aktuell ausgewählte Element im Treeview
-
+def add_item(tree, folder_entry, url_entry, playlists_data):
+    selected_item = tree.focus()
     new_folder_name = folder_entry.get()
     new_url = url_entry.get()
 
@@ -110,121 +113,116 @@ def add_item():
         folder_entry.insert(0, "Please select playlist directory")
         return
 
-    if new_url:  # Ein Sub-Item wird hinzugefügt
-        parent_item = tree.item(selected_item, 'text')
+    parent_item = tree.item(selected_item, 'text')
+    if tree.parent(selected_item):
+        parent_item = tree.item(tree.parent(selected_item), 'text')
 
-        # Prüfen, ob das ausgewählte Element eine Kategorie ist
-        if tree.parent(selected_item):
-            parent_item = tree.item(tree.parent(selected_item), 'text')
-
-        # Sub-Item zur Kategorie hinzufügen
+    if new_url:
         playlists_data[parent_item][new_folder_name] = new_url
-
-        # Speichere die aktualisierte JSON-Datei
-        save_playlists(playlists_data)
-
-        # Füge das neue Sub-Item zum Treeview hinzu
         tree.insert(selected_item, "end", text=new_folder_name)
-
-    else:  # Eine neue Kategorie wird hinzugefügt
-        # Kategorie zum JSON hinzufügen
+    else:
         playlists_data[new_folder_name] = {}
-
-        # Speichere die aktualisierte JSON-Datei
-        save_playlists(playlists_data)
-
-        # Füge die neue Kategorie zum Treeview hinzu
         tree.insert("", "end", text=new_folder_name)
 
+    save_playlists(playlists_data)
 
-def download(config, playlists_data, filter_entry):
-    print(config)
-    music_directory = config['music_directory']
-    download_format = config['download_format']
 
-    for category_name, category_playlists in playlists_data.items():
-        download_playlists(
-            music_directory,
-            download_format,
-            category_name,
-            category_playlists,
-            filter_entry.get()
+def setup_treeview(tree, playlists_data):
+    for folder, urls in playlists_data.items():
+        folder_id = tree.insert("", "end", text=folder)
+        for url_name in urls:
+            tree.insert(folder_id, "end", text=url_name)
+
+
+def main():
+    playlists_data = load_playlists()
+    config = load_config()
+
+    root = tk.Tk()
+    root.title("uDJ Tool")
+
+    left_frame = ttk.Frame(root)
+    left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
+
+    tk.Label(left_frame, text="Playlists").pack(anchor="nw", padx=5, pady=5)
+    tree = ttk.Treeview(left_frame)
+    tree.pack(fill="both", expand=True)
+
+    setup_treeview(tree, playlists_data)
+
+    tree.bind(
+        '<<TreeviewSelect>>',
+        lambda event: on_select(
+            event, tree, folder_entry, url_entry, playlists_data
         )
+    )
+
+    progress_label = tk.Label(left_frame, text="Progress")
+    progress_label.pack(anchor="nw", padx=5, pady=5)
+    progress_text = tk.StringVar()
+    progress_display = tk.Label(
+        left_frame,
+        textvariable=progress_text,
+        height=4,
+        width=40,
+        relief="sunken"
+    )
+    progress_display.pack(anchor="nw", padx=5, pady=5)
+
+    right_frame = ttk.Frame(root)
+    right_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
+
+    tk.Label(right_frame, text="Folder").grid(
+        row=0, column=0, padx=5, pady=5, sticky="w"
+    )
+    folder_entry = tk.Entry(right_frame)
+    folder_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+    tk.Label(right_frame, text="URL").grid(
+        row=0, column=2, padx=5, pady=5, sticky="w"
+    )
+    url_entry = tk.Entry(right_frame)
+    url_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+
+    tk.Button(right_frame, text="Add", command=lambda: add_item(
+        tree, folder_entry, url_entry, playlists_data)
+    ).grid(row=1, column=0, padx=5, pady=5)
+
+    tk.Button(right_frame, text="Edit", command=lambda: edit_item(
+        tree, folder_entry, url_entry, playlists_data)
+    ).grid(row=1, column=1, padx=5, pady=5)
+
+    tk.Button(right_frame, text="Remove", command=lambda: remove_item(
+        tree, playlists_data)
+    ).grid(row=1, column=2, padx=5, pady=5)
+
+    tk.Label(right_frame, text="Filter").grid(
+        row=2, column=0, padx=5, pady=5, sticky="w"
+    )
+    filter_entry = tk.Entry(right_frame)
+    filter_entry.grid(row=2,
+                      column=1,
+                      columnspan=3,
+                      padx=5,
+                      pady=5,
+                      sticky="w"
+                      )
+
+    download_button = tk.Button(
+        right_frame,
+        text="Download",
+        command=lambda: download(
+            config, playlists_data, filter_entry, progress_display
+        ),
+    )
+    download_button.grid(row=3, column=0, columnspan=4, padx=5, pady=5)
+
+    # Text widget to display the output of tidal-dl
+    progress_display = tk.Text(left_frame, height=15, width=50, wrap=tk.WORD)
+    progress_display.pack(anchor="nw", padx=5, pady=5)
+
+    root.mainloop()
 
 
-# Lade die Playlists-Daten
-playlists_data = load_playlists()
-config = load_config()
-
-# Hauptfenster erstellen
-root = tk.Tk()
-root.title("uDJ Tool")
-
-# Linker Bereich
-left_frame = ttk.Frame(root)
-left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
-
-# Playlists-Anzeige
-playlists_label = tk.Label(left_frame, text="Playlists")
-playlists_label.pack(anchor="nw", padx=5, pady=5)
-
-# Erstelle das Treeview für Playlists
-tree = ttk.Treeview(left_frame)
-tree.pack(fill="both", expand=True)
-
-# Füge die Kategorien und Playlists zum Treeview hinzu
-for folder, urls in playlists_data.items():
-    folder_id = tree.insert("", "end", text=folder)  # Fügt die Kategorie als Ordner hinzu
-    for url_name, url_link in urls.items():
-        tree.insert(folder_id, "end", text=url_name)  # Fügt die Playlists zur Kategorie hinzu
-
-# Binde die Auswahl-Callback-Funktion an das Treeview
-tree.bind('<<TreeviewSelect>>', on_select)
-
-# Progress-Anzeige
-progress_label = tk.Label(left_frame, text="Progress")
-progress_label.pack(anchor="nw", padx=5, pady=5)
-
-progress_text = tk.StringVar()
-progress_display = tk.Label(left_frame, textvariable=progress_text, height=4, width=40, relief="sunken")
-progress_display.pack(anchor="nw", padx=5, pady=5)
-
-# Rechter Bereich
-right_frame = ttk.Frame(root)
-right_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
-
-# Ordner und URL Eingabefelder
-folder_label = tk.Label(right_frame, text="Ordner")
-folder_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-folder_entry = tk.Entry(right_frame)
-folder_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
-
-url_label = tk.Label(right_frame, text="URL")
-url_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-url_entry = tk.Entry(right_frame)
-url_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
-
-# Buttons Add, Edit, Remove
-add_button = tk.Button(right_frame, text="Add", command=add_item)
-add_button.grid(row=1, column=0, padx=5, pady=5)
-
-edit_button = tk.Button(right_frame, text="Edit", command=edit_item)
-edit_button.grid(row=1, column=1, padx=5, pady=5)
-
-remove_button = tk.Button(right_frame, text="Remove", command=remove_item)
-remove_button.grid(row=1, column=2, padx=5, pady=5)
-
-# Filter-Eingabefeld und Download-Button
-filter_label = tk.Label(right_frame, text="Filter")
-filter_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-filter_entry = tk.Entry(right_frame)
-filter_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky="w")
-
-download_button = tk.Button(
-    right_frame,
-    text="Download",
-    command=lambda: download(config, playlists_data, filter_entry),
-)
-download_button.grid(row=3, column=0, columnspan=4, padx=5, pady=5)
-
-root.mainloop()
+if __name__ == "__main__":
+    main()
