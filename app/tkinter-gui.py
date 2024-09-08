@@ -145,6 +145,22 @@ def create_clickable_label(parent, text, command, bg=PRIMARY_COLOR, fg="white"):
     return label
 
 
+def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
+    # Berechne die Anzahl der Streifen basierend auf der Fensterbreite und der Streifenbreite
+    window_width = root.winfo_screenwidth()
+    num_stripes = window_width // stripe_width
+
+    for i in range(num_stripes):
+        # Wähle die Farbe für den aktuellen Streifen
+        color = stripe_color_1 if i % 2 == 0 else stripe_color_2
+
+        # Erstelle ein Label als Streifen
+        stripe = tk.Label(root, bg=color, width=stripe_width, height=2000)
+        
+        # Packe das Label in den Hintergrund
+        stripe.place(x=i * stripe_width, y=0, width=stripe_width, relheight=1)
+
+
 class HoverLabel(tk.Label):
 
     def __init__(self, parent, text, command=None, **kwargs):
@@ -210,8 +226,8 @@ def create_hover_label(parent, text, command, **kwargs):
     return HoverLabel(parent, text=text, command=command, **kwargs)
 
 
-def setup_left_frame(root, playlists_data, on_select, right_frame_entries, progress_display):
-    left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200, height=300)
+def setup_left_frame(root, playlists_data, on_select, center_frame_entries):
+    left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
     left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
     left_frame.grid_propagate(False)
     left_frame.grid_columnconfigure(0, weight=1)
@@ -237,7 +253,7 @@ def setup_left_frame(root, playlists_data, on_select, right_frame_entries, progr
     tree.grid(row=0, column=0, padx=5, pady=5, sticky="nswe")
     setup_treeview(tree, playlists_data)
     tree.heading("#0", text="Playlists", anchor="w")
-    folder_entry, url_entry = right_frame_entries
+    folder_entry, url_entry = center_frame_entries
     tree.bind(
         '<<TreeviewSelect>>',
         lambda event: on_select(
@@ -245,80 +261,113 @@ def setup_left_frame(root, playlists_data, on_select, right_frame_entries, progr
         )
     )
 
-    # PROGRESS DISPLAY
-    progress_display.grid(row=3, column=0, padx=5, pady=5)
-    progress_display.configure(highlightbackground="blue", highlightcolor="blue")
+
+def setup_center_frame(root, playlists_data, tree, config, progress_display):
+    center_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
+    center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
+    center_frame.grid_columnconfigure(0, weight=1)  # Adjust weight to 1 for equal width distribution
+    center_frame.grid_columnconfigure(1, weight=1)
+    center_frame.grid_columnconfigure(2, weight=1)
+    center_frame.grid_columnconfigure(3, weight=1)
 
 
-def setup_right_frame(root, playlists_data, tree, config, progress_display):
-    right_frame = tk.Frame(root, bg=PRIMARY_COLOR)
-    right_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
+    # SELECT TARGET DIRECTORY
 
-    folder_entry = tk.Entry(right_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
-    url_entry = tk.Entry(right_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
-
-    tk.Label(right_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
+    # FOLDER / PLAYLIST NAME
+    tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
         row=0, column=0, padx=5, pady=5, sticky="w"
     )
-    folder_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
-
-    tk.Label(right_frame, text="URL", bg=SECONDARY_COLOR, fg="white").grid(
-        row=0, column=2, padx=5, pady=5, sticky="w"
+    tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
+        row=1, column=0, padx=5, pady=5, sticky="w"
     )
-    url_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+    folder_entry = tk.Entry(center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
+    folder_entry.grid(row=2, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
 
+    # TIDAL PLAYLIST URL
+    tk.Label(center_frame, text="URL", bg=SECONDARY_COLOR, fg="white").grid(
+        row=3, column=0, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
+        row=4, column=0, padx=5, pady=5, sticky="w"
+    )
+    url_entry = tk.Entry(center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
+    url_entry.grid(row=5, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+
+    # BUTTONS: CREATE_FOLDER, ADD_PLAYLIST, UPDATE, REMOVE
     create_clickable_label(
-        right_frame, "Add", lambda: add_item(tree, folder_entry, url_entry, playlists_data),
+        center_frame, "Add", lambda: add_item(tree, folder_entry, url_entry, playlists_data),
         bg="black", fg="white"
-    ).grid(row=1, column=0, padx=5, pady=5)
+    ).grid(row=6, column=0, padx=5, pady=5)
     
     create_clickable_label(
-        right_frame, "Edit", lambda: edit_item(tree, folder_entry, url_entry, playlists_data),
+        center_frame, "Edit", lambda: edit_item(tree, folder_entry, url_entry, playlists_data),
         bg="black", fg="white"
-    ).grid(row=1, column=1, padx=5, pady=5)
+    ).grid(row=6, column=1, padx=5, pady=5)
 
     create_clickable_label(
-        right_frame, "Remove", lambda: remove_item(tree, playlists_data),
+        center_frame, "Remove", lambda: remove_item(tree, playlists_data),
         bg="black", fg="white"
-    ).grid(row=1, column=2, padx=5, pady=5)
+    ).grid(row=6, column=2, padx=5, pady=5)
 
-    tk.Label(right_frame, text="Filter", bg="black", fg="white").grid(
-        row=2, column=0, padx=5, pady=5, sticky="w"
+    # QUALITY
+    tk.Label(center_frame, text="Quality", bg=SECONDARY_COLOR, fg="white").grid(
+        row=7, column=0, padx=5, pady=5, sticky="w"
     )
-    filter_entry = tk.Entry(right_frame, bg="black", fg="white", insertbackground="white")
-    filter_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky="w")
+    tk.Label(center_frame, text="m4a", bg=SECONDARY_COLOR, fg="white").grid(
+        row=8, column=0, columnspan=2, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="flac", bg=SECONDARY_COLOR, fg="white").grid(
+        row=8, column=2, columnspan=2, padx=5, pady=5, sticky="w"
+    )
 
+
+    tk.Label(center_frame, text="Normal", bg=SECONDARY_COLOR, fg="white").grid(
+        row=9, column=0, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="High", bg=SECONDARY_COLOR, fg="white").grid(
+        row=9, column=1, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="HiFi", bg=SECONDARY_COLOR, fg="white").grid(
+        row=9, column=2, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="Master", bg=SECONDARY_COLOR, fg="white").grid(
+        row=9, column=3, padx=5, pady=5, sticky="w"
+    )
+
+    # CONVERT
+    tk.Label(center_frame, text="Convert", bg=SECONDARY_COLOR, fg="white").grid(
+        row=10, column=0, padx=5, pady=5, sticky="w"
+    )
+
+    tk.Label(center_frame, text="mp3", bg=SECONDARY_COLOR, fg="white").grid(
+        row=11, column=0, columnspan=2, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="wav", bg=SECONDARY_COLOR, fg="white").grid(
+        row=11, column=2, columnspan=2, padx=5, pady=5, sticky="w"
+    )
+
+    # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
     create_hover_label(
-        right_frame, "Download Selected", lambda: download(
+        center_frame, "Download Selected", lambda: download(
             config, playlists_data, filter_entry, progress_display),
         bg="#004499",
         fg="white",
-    ).grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+    ).grid(row=12, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     create_hover_label(
-        right_frame, "Download All", lambda: download(
+        center_frame, "Download All", lambda: download(
             config, playlists_data, filter_entry, progress_display),
         bg="#009944",
         fg="white",
-    ).grid(row=3, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
+    ).grid(row=12, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
 
     return folder_entry, url_entry
 
 
-def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
-    # Berechne die Anzahl der Streifen basierend auf der Fensterbreite und der Streifenbreite
-    window_width = root.winfo_screenwidth()
-    num_stripes = window_width // stripe_width
+def setup_right_frame(root, progress_display):
+    progress_display.grid(row=0, column=2, padx=10, pady=10, sticky="nswe")
+    root.grid_columnconfigure(2, weight=1)  # Adjust weight to 1 for equal width distribution
 
-    for i in range(num_stripes):
-        # Wähle die Farbe für den aktuellen Streifen
-        color = stripe_color_1 if i % 2 == 0 else stripe_color_2
-
-        # Erstelle ein Label als Streifen
-        stripe = tk.Label(root, bg=color, width=stripe_width, height=2000)
-        
-        # Packe das Label in den Hintergrund
-        stripe.place(x=i * stripe_width, y=0, width=stripe_width, relheight=1)
 
 # --- Main-Funktion ---
 
@@ -329,7 +378,7 @@ def main():
     root = tk.Tk()
     root.title("uDJ Tool")
     root.configure(bg="black")
-    root.geometry("1000x600")
+    root.geometry("1000x500")
     root.resizable(False, False)
 
     # tk.Label(root, bg="#FF2288", height=100, width=3).grid(
@@ -340,18 +389,27 @@ def main():
 
     progress_display = tk.Text(
         root,
-        height=15,
+        # height=15,
         width=50,
+        border=0,
+        borderwidth=0,
         wrap=tk.WORD,
         bg="#8822FF",
         fg="white",
-        insertbackground="white",
-        relief="solid",
-        bd=2
+        highlightthickness=0,
+        # insertbackground="white",
+        # relief="solid",
+        # bd=2
     )
 
-    right_frame_entries = setup_right_frame(root, playlists_data, tree=None, config=config, progress_display=progress_display)
-    setup_left_frame(root, playlists_data, on_select, right_frame_entries, progress_display)
+    center_frame_entries = setup_center_frame(root, playlists_data, tree=None, config=config, progress_display=progress_display)
+    setup_left_frame(root, playlists_data, on_select, center_frame_entries)
+    setup_right_frame(root, progress_display)
+
+    # Konfiguriere die Spalten des root Fensters
+    root.grid_columnconfigure(0, weight=1)
+    root.grid_columnconfigure(1, weight=1)
+    root.grid_columnconfigure(2, weight=1)
 
     root.mainloop()
 
