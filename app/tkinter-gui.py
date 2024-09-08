@@ -5,6 +5,10 @@ from download_playlists import download_playlists
 import subprocess
 import threading
 
+PRIMARY_COLOR = "#8822FF"
+SECONDARY_COLOR = "#FF2288"
+
+# --- Download- und Subprozess-Funktionen ---
 
 def run_tidal_dl(link, download_dir, text_widget):
     process = subprocess.Popen(
@@ -130,46 +134,9 @@ def setup_treeview(tree, playlists_data):
             tree.insert(folder_id, "end", text=url_name)
 
 
-# master: Misc | None = None,
-#     cnf: dict[str, Any] | None = {},
-#     *,
-#     activebackground: str = ...,
-#     activeforeground: str = ...,
-#     anchor: _Anchor = "center",
-#     background: str = ...,
-#     bd: _ScreenUnits = ...,
-#     bg: str = ...,
-#     bitmap: str = "",
-#     border: _ScreenUnits = ...,
-#     borderwidth: _ScreenUnits = ...,
-#     compound: _Compound = "none",
-#     cursor: _Cursor = "",
-#     disabledforeground: str = ...,
-#     fg: str = ...,
-#     font: _FontDescription = "TkDefaultFont",
-#     foreground: str = ...,
-#     height: _ScreenUnits = 0,
-#     highlightbackground: str = ...,
-#     highlightcolor: str = ...,
-#     highlightthickness: _ScreenUnits = 0,
-#     image: _ImageSpec = "",
-#     justify: Literal['left', 'center', 'right'] = "center",
-#     name: str = ...,
-#     padx: _ScreenUnits = 1,
-#     pady: _ScreenUnits = 1,
-#     relief: _Relief = "flat",
-#     state: Literal['normal', 'active', 'disabled'] = "normal",
-#     takefocus: _TakeFocusValue = 0,
-#     text: float | str = "",
-#     textvariable: Variable = ...,
-#     underline: int = -1,
-#     width: _ScreenUnits = 0,
-#     wraplength: _ScreenUnits = 0
-
-
-def create_clickable_label(parent, text, command, bg="black", fg="white"):
-    label = tk.Label(parent, 
-                     text=text, 
+def create_clickable_label(parent, text, command, bg=PRIMARY_COLOR, fg="white"):
+    label = tk.Label(parent,
+                     text=text,
                      font=("Comic Sans MS", 16, "bold"),
                      relief=tk.RAISED,
                      bg=bg, fg=fg, border=1, borderwidth=3, cursor="hand2")
@@ -235,32 +202,42 @@ class HoverLabel(tk.Label):
 
     def on_click(self, event):
         if self.command:
+            # self.configure(state="disabled")
             self.command()
+
 
 def create_hover_label(parent, text, command, **kwargs):
     return HoverLabel(parent, text=text, command=command, **kwargs)
 
 
-def main():
-    playlists_data = load_playlists()
-    config = load_config()
-
-    root = tk.Tk()
-    root.title("uDJ Tool")
-    root.configure(bg="black")
-
-    # Left Frame
-    left_frame = tk.Frame(root, bg="black")
+def setup_left_frame(root, playlists_data, on_select, right_frame_entries, progress_display):
+    left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200, height=300)
     left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
+    left_frame.grid_propagate(False)
+    left_frame.grid_columnconfigure(0, weight=1)
+    left_frame.grid_rowconfigure(0, weight=1)
 
-    tk.Label(left_frame, text="Playlists", bg="black", fg="white").grid(
-        row=0, column=0, padx=5, pady=5, sticky="nw"
-    )
+    # TREEVIEW
+    style = ttk.Style()
+    style.configure("Treeview.Heading",
+                    font=("Comic Sans MS", 16, "bold"),
+                    background=SECONDARY_COLOR,
+                    fieldbackground=SECONDARY_COLOR,
+                    fg=SECONDARY_COLOR
+                    )
+    style.configure("Treeview",
+                    background=PRIMARY_COLOR,
+                    fieldbackground=PRIMARY_COLOR,
+                    foreground="white",
+                    font=("Courier New", 14),
+                    rowheight=18
+                    )
+
     tree = ttk.Treeview(left_frame)
-    tree.grid(row=1, column=0, padx=5, pady=5, sticky="nswe")
-
+    tree.grid(row=0, column=0, padx=5, pady=5, sticky="nswe")
     setup_treeview(tree, playlists_data)
-
+    tree.heading("#0", text="Playlists", anchor="w")
+    folder_entry, url_entry = right_frame_entries
     tree.bind(
         '<<TreeviewSelect>>',
         lambda event: on_select(
@@ -268,41 +245,28 @@ def main():
         )
     )
 
-    # Progress Label
-    tk.Label(left_frame, text="Progress", bg="black", fg="white").grid(
-        row=2, column=0, padx=5, pady=5, sticky="nw"
-    )
-    progress_display = tk.Text(
-        left_frame,
-        height=15,
-        width=50,
-        wrap=tk.WORD,
-        bg="black",
-        fg="white",
-        insertbackground="white",
-        relief="solid",
-        bd=2
-    )
+    # PROGRESS DISPLAY
     progress_display.grid(row=3, column=0, padx=5, pady=5)
     progress_display.configure(highlightbackground="blue", highlightcolor="blue")
 
-    # Right Frame
-    right_frame = tk.Frame(root, bg="black")
+
+def setup_right_frame(root, playlists_data, tree, config, progress_display):
+    right_frame = tk.Frame(root, bg=PRIMARY_COLOR)
     right_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
 
-    tk.Label(right_frame, text="Folder", bg="black", fg="white").grid(
+    folder_entry = tk.Entry(right_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
+    url_entry = tk.Entry(right_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
+
+    tk.Label(right_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
         row=0, column=0, padx=5, pady=5, sticky="w"
     )
-    folder_entry = tk.Entry(right_frame, bg="black", fg="white", insertbackground="white")
     folder_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
-    tk.Label(right_frame, text="URL", bg="black", fg="white").grid(
+    tk.Label(right_frame, text="URL", bg=SECONDARY_COLOR, fg="white").grid(
         row=0, column=2, padx=5, pady=5, sticky="w"
     )
-    url_entry = tk.Entry(right_frame, bg="black", fg="white", insertbackground="white")
     url_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
-    # Replace buttons with clickable labels
     create_clickable_label(
         right_frame, "Add", lambda: add_item(tree, folder_entry, url_entry, playlists_data),
         bg="black", fg="white"
@@ -325,16 +289,69 @@ def main():
     filter_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky="w")
 
     create_hover_label(
-        right_frame, "Download", lambda: download(
+        right_frame, "Download Selected", lambda: download(
             config, playlists_data, filter_entry, progress_display),
-        bg="black", fg="white", font=("Comic Sans MS", 12)
-    ).grid(row=3, column=0, columnspan=4, padx=5, pady=5)
+        bg="#004499",
+        fg="white",
+    ).grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-    # create_clickable_label(
-    #     right_frame, "Download", lambda: download(
-    #         config, playlists_data, filter_entry, progress_display),
-    #     bg="#3300FF", fg="white"
-    # ).grid(row=3, column=0, columnspan=1, padx=5, pady=5)
+    create_hover_label(
+        right_frame, "Download All", lambda: download(
+            config, playlists_data, filter_entry, progress_display),
+        bg="#009944",
+        fg="white",
+    ).grid(row=3, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
+
+    return folder_entry, url_entry
+
+
+def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
+    # Berechne die Anzahl der Streifen basierend auf der Fensterbreite und der Streifenbreite
+    window_width = root.winfo_screenwidth()
+    num_stripes = window_width // stripe_width
+
+    for i in range(num_stripes):
+        # Wähle die Farbe für den aktuellen Streifen
+        color = stripe_color_1 if i % 2 == 0 else stripe_color_2
+
+        # Erstelle ein Label als Streifen
+        stripe = tk.Label(root, bg=color, width=stripe_width, height=2000)
+        
+        # Packe das Label in den Hintergrund
+        stripe.place(x=i * stripe_width, y=0, width=stripe_width, relheight=1)
+
+# --- Main-Funktion ---
+
+def main():
+    playlists_data = load_playlists()
+    config = load_config()
+
+    root = tk.Tk()
+    root.title("uDJ Tool")
+    root.configure(bg="black")
+    root.geometry("1000x600")
+    root.resizable(False, False)
+
+    # tk.Label(root, bg="#FF2288", height=100, width=3).grid(
+    #     row=0, column=0, columnspan=10, rowspan=10, padx=5, pady=5, sticky="nw"
+    # )
+
+    create_stripes(root, 30, "#FF2288", "#8822FF")
+
+    progress_display = tk.Text(
+        root,
+        height=15,
+        width=50,
+        wrap=tk.WORD,
+        bg="#8822FF",
+        fg="white",
+        insertbackground="white",
+        relief="solid",
+        bd=2
+    )
+
+    right_frame_entries = setup_right_frame(root, playlists_data, tree=None, config=config, progress_display=progress_display)
+    setup_left_frame(root, playlists_data, on_select, right_frame_entries, progress_display)
 
     root.mainloop()
 
