@@ -177,21 +177,61 @@ def create_clickable_label(parent, text, command, bg="black", fg="white"):
 
     return label
 
+
 class HoverLabel(tk.Label):
+
     def __init__(self, parent, text, command=None, **kwargs):
         super().__init__(parent, text=text, **kwargs)
+        self.configure(
+            cursor="hand2",
+            compound="left",
+            state="active",
+            font=("Comic Sans MS", 16, "bold"),
+            relief=tk.RAISED,
+        )
+
+        self.toggle_bg = "#FF2288"
+        self.is_hovering = False
+        self.after_id = None
         self.default_bg = self.cget("bg")
         self.default_fg = self.cget("fg")
+        # self.default_bitmap = self.cget("bitmap")
+        self.default_width = self.cget("width")
+        self.default_height = self.cget("height")
+        self.default_bd = self.cget("bd")
+        self.default_highlightbackground = self.cget("highlightbackground")
+        self.default_highlightcolor = self.cget("highlightcolor")
+        self.default_highlightthickness = self.cget("highlightthickness")
+        self.default_activebackground = self.cget("activebackground")
+        self.default_activeforeground = self.cget("activeforeground")
+
         self.command = command
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
         self.bind("<Button-1>", self.on_click)
 
+    def toggle_state(self):
+        if self.default_state == "active":
+            return "disabled"
+        else:
+            return "active"
+
+    def toggle_background(self):
+        if self.is_hovering:
+            current_bg = self.cget("bg")
+            new_bg = self.toggle_bg if current_bg == self.default_bg else self.default_bg
+            self.configure(bg=new_bg, relief=tk.SUNKEN)
+            self.after_id = self.after(200, self.toggle_background)
+
     def on_enter(self, event):
-        self.configure(bg=self.default_fg, fg=self.default_bg)
+        self.is_hovering = True
+        self.toggle_background()
 
     def on_leave(self, event):
-        self.configure(bg=self.default_bg, fg=self.default_fg)
+        self.is_hovering = False
+        if self.after_id:
+            self.after_cancel(self.after_id)
+        self.configure(bg=self.default_bg, fg=self.default_fg, relief=tk.RAISED)
 
     def on_click(self, event):
         if self.command:
