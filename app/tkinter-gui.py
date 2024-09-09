@@ -43,13 +43,14 @@ welcome_text = """
 
 # --- Download- und Subprozess-Funktionen ---
 
+
 def run_tidal_dl(link, download_dir, text_widget):
     process = subprocess.Popen(
         ["tidal-dl", "-l", link, "-o", download_dir],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        bufsize=1
+        bufsize=1,
     )
 
     def update_text_widget(stream):
@@ -68,7 +69,7 @@ def run_tidal_dl(link, download_dir, text_widget):
 
 def download(config, playlists_data, text_widget):
     def download_thread():
-        music_directory = config['music_directory']
+        music_directory = config["music_directory"]
 
         for category_name, category_playlists in playlists_data.items():
             for link_name, link in category_playlists.items():
@@ -76,6 +77,9 @@ def download(config, playlists_data, text_widget):
                 run_tidal_dl(link, download_dir, text_widget)
 
     threading.Thread(target=download_thread).start()
+
+
+# --- Funktionen zum Bearbeiten der Playlist-Daten ---
 
 
 def on_select(event, tree, folder_entry, url_entry, playlists_data):
@@ -87,7 +91,7 @@ def on_select(event, tree, folder_entry, url_entry, playlists_data):
     url_entry.delete(0, tk.END)
 
     if parent_item:
-        url = playlists_data[tree.item(parent_item, 'text')][item_text]
+        url = playlists_data[tree.item(parent_item, "text")][item_text]
         folder_entry.insert(0, item_text)
         url_entry.insert(0, url)
     else:
@@ -158,14 +162,15 @@ def on_select(event, tree, folder_entry, url_entry, playlists_data):
 
 #     save_playlists(playlists_data)
 
+
 def update_item(tree, folder_entry, url_entry, playlists_data):
     # Holt den aktuell ausgewählten Eintrag aus dem Treeview
     selected_item = tree.selection()
-    
+
     if not selected_item:
         print("No item selected for update.")
         return
-    
+
     # Holt den ursprünglichen Namen und die neue Werte aus den Eingabefeldern
     item_text = tree.item(selected_item, "text")
     new_folder_name = folder_entry.get()
@@ -178,7 +183,7 @@ def update_item(tree, folder_entry, url_entry, playlists_data):
     if not new_url:
         url_entry.insert(0, "INSERT URL HERE!")
         return
-    
+
     # Überprüfen, ob das ausgewählte Element ein Ordner oder eine Playlist ist
     if item_text in playlists_data:
         # Es handelt sich um einen Ordner
@@ -190,15 +195,20 @@ def update_item(tree, folder_entry, url_entry, playlists_data):
         parent_item = tree.parent(selected_item)
         if parent_item:  # Die Playlist befindet sich in einem Ordner
             parent_name = tree.item(parent_item, "text")
-            if parent_name in playlists_data and item_text in playlists_data[parent_name]:
-                playlists_data[parent_name][new_folder_name] = playlists_data[parent_name].pop(item_text)
+            if (
+                parent_name in playlists_data
+                and item_text in playlists_data[parent_name]
+            ):
+                playlists_data[parent_name][new_folder_name] = playlists_data[
+                    parent_name
+                ].pop(item_text)
         else:  # Die Playlist befindet sich auf der obersten Ebene
             playlists_data[new_folder_name] = playlists_data.pop(item_text)
-        
+
         # URL aktualisieren, wenn sich diese geändert hat
         if new_url != playlists_data[new_folder_name]:
             playlists_data[new_folder_name] = new_url
-        
+
         # Aktualisiere den Treeview-Eintrag
         tree.item(selected_item, text=new_folder_name)
 
@@ -206,15 +216,14 @@ def update_item(tree, folder_entry, url_entry, playlists_data):
     save_playlists(playlists_data)
 
 
-
 # Funktion zum Löschen eines Eintrags
 def remove_item(tree, playlists_data):
     selected_item = tree.focus()
-    item_text = tree.item(selected_item, 'text')
+    item_text = tree.item(selected_item, "text")
     parent_item = tree.parent(selected_item)
 
     if parent_item:
-        folder = tree.item(parent_item, 'text')
+        folder = tree.item(parent_item, "text")
         del playlists_data[folder][item_text]
         if not playlists_data[folder]:
             del playlists_data[folder]
@@ -228,11 +237,11 @@ def remove_item(tree, playlists_data):
 def create_playlist(tree, folder_entry, url_entry, playlists_data):
     # Holt den aktuell ausgewählten Eintrag aus dem Treeview
     selected_item = tree.selection()
-    
+
     # Holt den Namen und die URL der Playlist aus den Eingabefeldern
     playlist_name = folder_entry.get()
     playlist_url = url_entry.get()
-    
+
     # Überprüfen, ob die Eingabefelder ausgefüllt sind
     if not playlist_name:
         # folder_entry.insert(0, "INSERT NAME HERE!")
@@ -259,7 +268,7 @@ def create_playlist(tree, folder_entry, url_entry, playlists_data):
 
     # Speichert die aktualisierten Playlists im JSON-Objekt
     save_playlists(playlists_data)
-    
+
     # # Fügt die neue Playlist zum Treeview hinzu
     # if selected_item:
     #     tree.insert(selected_item, "end", text=playlist_name)
@@ -267,10 +276,9 @@ def create_playlist(tree, folder_entry, url_entry, playlists_data):
     #     tree.insert("", "end", text=playlist_name)
 
 
-
 def create_folder(tree, folder_entry, playlists_data):
     folder_name = folder_entry.get()
-    
+
     if not folder_name:
         folder_entry.insert(0, "INSERT NAME HERE!")
         return
@@ -284,6 +292,7 @@ def create_folder(tree, folder_entry, playlists_data):
 
 # --- Funktionen zur GUI-Erstellung ---
 
+
 def setup_treeview(tree, playlists_data):
     for folder, urls in playlists_data.items():
         folder_id = tree.insert("", "end", text=folder)
@@ -292,11 +301,17 @@ def setup_treeview(tree, playlists_data):
 
 
 def create_clickable_label(parent, text, command, bg=PRIMARY_COLOR, fg="white"):
-    label = tk.Label(parent,
-                     text=text,
-                     font=("Comic Sans MS", 16, "bold"),
-                     relief=tk.RAISED,
-                     bg=bg, fg=fg, border=1, borderwidth=3, cursor="hand2")
+    label = tk.Label(
+        parent,
+        text=text,
+        font=("Comic Sans MS", 16, "bold"),
+        relief=tk.RAISED,
+        bg=bg,
+        fg=fg,
+        border=1,
+        borderwidth=3,
+        cursor="hand2",
+    )
     label.bind("<Button-1>", lambda e: command())
 
     return label
@@ -313,7 +328,7 @@ def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
 
         # Erstelle ein Label als Streifen
         stripe = tk.Label(root, bg=color, width=stripe_width, height=2000)
-        
+
         # Packe das Label in den Hintergrund
         stripe.place(x=i * stripe_width, y=0, width=stripe_width, relheight=1)
 
@@ -359,7 +374,9 @@ class HoverLabel(tk.Label):
     def toggle_background(self):
         if self.is_hovering:
             current_bg = self.cget("bg")
-            new_bg = self.toggle_bg if current_bg == self.default_bg else self.default_bg
+            new_bg = (
+                self.toggle_bg if current_bg == self.default_bg else self.default_bg
+            )
             self.configure(bg=new_bg, relief=tk.SUNKEN)
             self.after_id = self.after(200, self.toggle_background)
 
@@ -386,40 +403,41 @@ def create_hover_label(parent, text, command, **kwargs):
 def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
     # TREEVIEW
     style = ttk.Style()
-    style.configure("Treeview.Heading",
-                    font=("Comic Sans MS", 16, "bold"),
-                    background=SECONDARY_COLOR,
-                    fieldbackground=SECONDARY_COLOR,
-                    fg=SECONDARY_COLOR
-                    )
-    style.configure("Treeview",
-                    background=PRIMARY_COLOR,
-                    fieldbackground=PRIMARY_COLOR,
-                    foreground="white",
-                    font=("Courier New", 14),
-                    rowheight=18
-                    )
+    style.configure(
+        "Treeview.Heading",
+        font=("Comic Sans MS", 16, "bold"),
+        background=SECONDARY_COLOR,
+        fieldbackground=SECONDARY_COLOR,
+        fg=SECONDARY_COLOR,
+    )
+    style.configure(
+        "Treeview",
+        background=PRIMARY_COLOR,
+        fieldbackground=PRIMARY_COLOR,
+        foreground="white",
+        font=("Courier New", 14),
+        rowheight=18,
+    )
 
     tree.grid(row=0, column=0, padx=5, pady=5, sticky="nswe")
     setup_treeview(tree, playlists_data)
     tree.heading("#0", text="Playlists", anchor="w")
     folder_entry, url_entry = center_frame_entries
     tree.bind(
-        '<<TreeviewSelect>>',
-        lambda event: on_select(
-            event, tree, folder_entry, url_entry, playlists_data
-        )
+        "<<TreeviewSelect>>",
+        lambda event: on_select(event, tree, folder_entry, url_entry, playlists_data),
     )
 
 
 def setup_center_frame(root, playlists_data, tree, config, progress_display):
     center_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
     center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
-    center_frame.grid_columnconfigure(0, weight=1)  # Adjust weight to 1 for equal width distribution
+    center_frame.grid_columnconfigure(
+        0, weight=1
+    )  # Adjust weight to 1 for equal width distribution
     center_frame.grid_columnconfigure(1, weight=1)
     center_frame.grid_columnconfigure(2, weight=1)
     center_frame.grid_columnconfigure(3, weight=1)
-
 
     # SELECT TARGET DIRECTORY
 
@@ -430,7 +448,9 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
         row=1, column=0, padx=5, pady=5, sticky="w"
     )
-    folder_entry = tk.Entry(center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
+    folder_entry = tk.Entry(
+        center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white"
+    )
     folder_entry.grid(row=2, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
 
     # TIDAL PLAYLIST URL
@@ -440,28 +460,42 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
         row=4, column=0, padx=5, pady=5, sticky="w"
     )
-    url_entry = tk.Entry(center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white")
+    url_entry = tk.Entry(
+        center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white"
+    )
     url_entry.grid(row=5, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
 
     # BUTTONS: CREATE_FOLDER, ADD_PLAYLIST, UPDATE, REMOVE
     create_hover_label(
-        center_frame, "Create Folder", lambda: create_folder(tree, folder_entry, playlists_data, progress_display),
-        bg="black", fg="white"
+        center_frame,
+        "Create Folder",
+        lambda: create_folder(tree, folder_entry, playlists_data, progress_display),
+        bg="black",
+        fg="white",
     ).grid(row=6, column=0, columnspan=1, padx=5, pady=5, sticky="ew")
 
     create_hover_label(
-        center_frame, "Add Playlist", lambda: create_playlist(tree, folder_entry, url_entry, playlists_data),
-        bg="black", fg="white"
+        center_frame,
+        "Add Playlist",
+        lambda: create_playlist(tree, folder_entry, url_entry, playlists_data),
+        bg="black",
+        fg="white",
     ).grid(row=6, column=1, columnspan=1, padx=5, pady=5, sticky="ew")
 
     create_hover_label(
-        center_frame, "Update", lambda: update_item(tree, folder_entry, url_entry, playlists_data),
-        bg="black", fg="white"
+        center_frame,
+        "Update",
+        lambda: update_item(tree, folder_entry, url_entry, playlists_data),
+        bg="black",
+        fg="white",
     ).grid(row=6, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
 
     create_hover_label(
-        center_frame, "Delete", lambda: remove_item(tree, playlists_data),
-        bg="black", fg="white"
+        center_frame,
+        "Delete",
+        lambda: remove_item(tree, playlists_data),
+        bg="black",
+        fg="white",
     ).grid(row=6, column=3, columnspan=1, padx=5, pady=5, sticky="ew")
 
     # QUALITY
@@ -474,7 +508,6 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     tk.Label(center_frame, text="flac", bg=SECONDARY_COLOR, fg="white").grid(
         row=8, column=2, columnspan=2, padx=5, pady=5, sticky="w"
     )
-
 
     tk.Label(center_frame, text="Normal", bg=SECONDARY_COLOR, fg="white").grid(
         row=9, column=0, padx=5, pady=5, sticky="w"
@@ -503,15 +536,17 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
 
     # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
     create_hover_label(
-        center_frame, "Download Selected", lambda: download(
-            config, playlists_data, progress_display),
+        center_frame,
+        "Download Selected",
+        lambda: download(config, playlists_data, progress_display),
         bg="#004499",
         fg="white",
     ).grid(row=12, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     create_hover_label(
-        center_frame, "Download All", lambda: download(
-            config, playlists_data, progress_display),
+        center_frame,
+        "Download All",
+        lambda: download(config, playlists_data, progress_display),
         bg="#009944",
         fg="white",
     ).grid(row=12, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
@@ -521,10 +556,13 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
 
 def setup_right_frame(root, progress_display):
     progress_display.grid(row=0, column=2, padx=10, pady=10, sticky="nswe")
-    root.grid_columnconfigure(2, weight=1)  # Adjust weight to 1 for equal width distribution
+    root.grid_columnconfigure(
+        2, weight=1
+    )  # Adjust weight to 1 for equal width distribution
 
 
 # --- Main-Funktion ---
+
 
 def main():
     playlists_data = load_playlists()
@@ -540,7 +578,7 @@ def main():
     #     row=0, column=0, columnspan=10, rowspan=10, padx=5, pady=5, sticky="nw"
     # )
 
-    create_stripes(root, 30, "#FF2288", "#8822FF")
+    create_stripes(root, 30, "red", "green")
 
     progress_display = tk.Text(
         root,
@@ -565,7 +603,9 @@ def main():
     left_frame.grid_rowconfigure(0, weight=1)
     tree = ttk.Treeview(left_frame)
 
-    center_frame_entries = setup_center_frame(root, playlists_data, tree, config=config, progress_display=progress_display)
+    center_frame_entries = setup_center_frame(
+        root, playlists_data, tree, config=config, progress_display=progress_display
+    )
     setup_left_frame(tree, playlists_data, on_select, center_frame_entries)
     setup_right_frame(root, progress_display)
 
