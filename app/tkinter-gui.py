@@ -41,6 +41,21 @@ welcome_text = """
 
 """
 
+# --- Helper Functions ---
+
+
+def print_progress_display(progress_display, text, tag="white"):
+    symbol = ""
+    if tag == "white":
+        symbol = "✓ "
+    elif tag == "yellow":
+        symbol = "⚠ "
+    elif tag == "black":
+        symbol = "✗ "
+    progress_display.insert(tk.END, symbol + text + "\n", tag)
+    progress_display.see(tk.END)
+
+
 # --- Download- und Subprozess-Funktionen ---
 
 
@@ -276,11 +291,13 @@ def create_playlist(tree, folder_entry, url_entry, playlists_data):
     #     tree.insert("", "end", text=playlist_name)
 
 
-def create_folder(tree, folder_entry, playlists_data):
+def create_folder(tree, folder_entry, playlists_data, progress_display):
     folder_name = folder_entry.get()
 
     if not folder_name:
-        folder_entry.insert(0, "INSERT NAME HERE!")
+        print_progress_display(
+            progress_display, "Give your folder a nice name!", "black"
+        )
         return
 
     # Überprüfen, ob der Ordnername bereits existiert
@@ -288,6 +305,15 @@ def create_folder(tree, folder_entry, playlists_data):
         playlists_data[folder_name] = {}
         save_playlists(playlists_data)
         tree.insert("", "end", text=folder_name)
+        print_progress_display(
+            progress_display,
+            'Created folder "' + folder_name + '". Such a cool name!',
+            "white",
+        )
+    else:
+        print_progress_display(
+            progress_display, "This folder already exists. Pick another name!", "yellow"
+        )
 
 
 # --- Funktionen zur GUI-Erstellung ---
