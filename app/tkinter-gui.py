@@ -66,15 +66,14 @@ def run_tidal_dl(link, download_dir, text_widget):
     text_widget.see(tk.END)
 
 
-def download(config, playlists_data, filter_entry, text_widget):
+def download(config, playlists_data, text_widget):
     def download_thread():
         music_directory = config['music_directory']
 
         for category_name, category_playlists in playlists_data.items():
             for link_name, link in category_playlists.items():
-                if filter_entry.get().lower() in link_name.lower():
-                    download_dir = f"{music_directory}/{category_name}/{link_name}"
-                    run_tidal_dl(link, download_dir, text_widget)
+                download_dir = f"{music_directory}/{category_name}/{link_name}"
+                run_tidal_dl(link, download_dir, text_widget)
 
     threading.Thread(target=download_thread).start()
 
@@ -95,30 +94,120 @@ def on_select(event, tree, folder_entry, url_entry, playlists_data):
         folder_entry.insert(0, item_text)
 
 
-def edit_item(tree, folder_entry, url_entry, playlists_data):
-    selected_item = tree.focus()
-    item_text = tree.item(selected_item, 'text')
-    parent_item = tree.parent(selected_item)
+# def edit_item(tree, folder_entry, url_entry, playlists_data):
+#     selected_item = tree.focus()
+#     item_text = tree.item(selected_item, 'text')
+#     parent_item = tree.parent(selected_item)
 
+#     new_folder_name = folder_entry.get()
+#     new_url = url_entry.get()
+
+#     if parent_item:
+#         folder = tree.item(parent_item, 'text')
+#         playlists_data[folder][new_folder_name] = new_url
+
+#         if new_folder_name != item_text:
+#             del playlists_data[folder][item_text]
+
+#         save_playlists(playlists_data)
+#         tree.item(selected_item, text=new_folder_name)
+#     else:
+#         if new_folder_name != item_text:
+#             playlists_data[new_folder_name] = playlists_data.pop(item_text)
+#             save_playlists(playlists_data)
+#             tree.item(selected_item, text=new_folder_name)
+
+
+# def remove_item(tree, playlists_data):
+#     selected_item = tree.focus()
+#     item_text = tree.item(selected_item, 'text')
+#     parent_item = tree.parent(selected_item)
+
+#     if parent_item:
+#         folder = tree.item(parent_item, 'text')
+#         del playlists_data[folder][item_text]
+#         if not playlists_data[folder]:
+#             del playlists_data[folder]
+#     else:
+#         del playlists_data[item_text]
+
+#     save_playlists(playlists_data)
+#     tree.delete(selected_item)
+
+
+# def add_item(tree, folder_entry, url_entry, playlists_data):
+#     selected_item = tree.focus()
+#     new_folder_name = folder_entry.get()
+#     new_url = url_entry.get()
+
+#     if not selected_item:
+#         folder_entry.delete(0, tk.END)
+#         folder_entry.insert(0, "Please select playlist directory")
+#         return
+
+#     parent_item = tree.item(selected_item, 'text')
+#     if tree.parent(selected_item):
+#         parent_item = tree.item(tree.parent(selected_item), 'text')
+
+#     if new_url:
+#         playlists_data[parent_item][new_folder_name] = new_url
+#         tree.insert(selected_item, "end", text=new_folder_name)
+#     else:
+#         playlists_data[new_folder_name] = {}
+#         tree.insert("", "end", text=new_folder_name)
+
+#     save_playlists(playlists_data)
+
+def update_item(tree, folder_entry, url_entry, playlists_data):
+    # Holt den aktuell ausgewählten Eintrag aus dem Treeview
+    selected_item = tree.selection()
+    
+    if not selected_item:
+        print("No item selected for update.")
+        return
+    
+    # Holt den ursprünglichen Namen und die neue Werte aus den Eingabefeldern
+    item_text = tree.item(selected_item, "text")
     new_folder_name = folder_entry.get()
     new_url = url_entry.get()
 
-    if parent_item:
-        folder = tree.item(parent_item, 'text')
-        playlists_data[folder][new_folder_name] = new_url
-
-        if new_folder_name != item_text:
-            del playlists_data[folder][item_text]
-
-        save_playlists(playlists_data)
+    # Überprüfen, ob die neuen Eingaben gültig sind
+    if not new_folder_name:
+        folder_entry.insert(0, "INSERT NAME HERE!")
+        return
+    if not new_url:
+        url_entry.insert(0, "INSERT URL HERE!")
+        return
+    
+    # Überprüfen, ob das ausgewählte Element ein Ordner oder eine Playlist ist
+    if item_text in playlists_data:
+        # Es handelt sich um einen Ordner
+        playlists_data[new_folder_name] = playlists_data.pop(item_text)
+        # Aktualisiere den Treeview-Eintrag
         tree.item(selected_item, text=new_folder_name)
     else:
-        if new_folder_name != item_text:
+        # Es handelt sich um eine Playlist, daher müssen wir den Ordner durchsuchen
+        parent_item = tree.parent(selected_item)
+        if parent_item:  # Die Playlist befindet sich in einem Ordner
+            parent_name = tree.item(parent_item, "text")
+            if parent_name in playlists_data and item_text in playlists_data[parent_name]:
+                playlists_data[parent_name][new_folder_name] = playlists_data[parent_name].pop(item_text)
+        else:  # Die Playlist befindet sich auf der obersten Ebene
             playlists_data[new_folder_name] = playlists_data.pop(item_text)
-            save_playlists(playlists_data)
-            tree.item(selected_item, text=new_folder_name)
+        
+        # URL aktualisieren, wenn sich diese geändert hat
+        if new_url != playlists_data[new_folder_name]:
+            playlists_data[new_folder_name] = new_url
+        
+        # Aktualisiere den Treeview-Eintrag
+        tree.item(selected_item, text=new_folder_name)
+
+    # Speichert die aktualisierten Playlists im JSON-Objekt
+    save_playlists(playlists_data)
 
 
+
+# Funktion zum Löschen eines Eintrags
 def remove_item(tree, playlists_data):
     selected_item = tree.focus()
     item_text = tree.item(selected_item, 'text')
@@ -136,29 +225,64 @@ def remove_item(tree, playlists_data):
     tree.delete(selected_item)
 
 
-def add_item(tree, folder_entry, url_entry, playlists_data):
-    selected_item = tree.focus()
-    new_folder_name = folder_entry.get()
-    new_url = url_entry.get()
-
-    if not selected_item:
-        folder_entry.delete(0, tk.END)
-        folder_entry.insert(0, "Please select playlist directory")
+def create_playlist(tree, folder_entry, url_entry, playlists_data):
+    # Holt den aktuell ausgewählten Eintrag aus dem Treeview
+    selected_item = tree.selection()
+    
+    # Holt den Namen und die URL der Playlist aus den Eingabefeldern
+    playlist_name = folder_entry.get()
+    playlist_url = url_entry.get()
+    
+    # Überprüfen, ob die Eingabefelder ausgefüllt sind
+    if not playlist_name:
+        # folder_entry.insert(0, "INSERT NAME HERE!")
+        return
+    if not playlist_url:
+        # url_entry.insert(0, "INSERT URL HERE!")
         return
 
-    parent_item = tree.item(selected_item, 'text')
-    if tree.parent(selected_item):
-        parent_item = tree.item(tree.parent(selected_item), 'text')
-
-    if new_url:
-        playlists_data[parent_item][new_folder_name] = new_url
-        tree.insert(selected_item, "end", text=new_folder_name)
+    # Überprüfen, ob ein Ordner ausgewählt ist
+    if selected_item:
+        print("selected_item")
+        # Wenn ein Ordner ausgewählt ist, füge die Playlist in den Ordner ein
+        parent_item = tree.item(selected_item, "text")
+        print(playlists_data)
+        if parent_item in playlists_data:
+            print("parent_item in playlists_data")
+            playlists_data[parent_item][playlist_name] = playlist_url
+            tree.insert(selected_item, "end", text=playlist_name)
+        else:
+            print("selected folder not found in json")
     else:
-        playlists_data[new_folder_name] = {}
-        tree.insert("", "end", text=new_folder_name)
+        print("else selected_item")
+        return
 
+    # Speichert die aktualisierten Playlists im JSON-Objekt
     save_playlists(playlists_data)
+    
+    # # Fügt die neue Playlist zum Treeview hinzu
+    # if selected_item:
+    #     tree.insert(selected_item, "end", text=playlist_name)
+    # else:
+    #     tree.insert("", "end", text=playlist_name)
 
+
+
+def create_folder(tree, folder_entry, playlists_data):
+    folder_name = folder_entry.get()
+    
+    if not folder_name:
+        folder_entry.insert(0, "INSERT NAME HERE!")
+        return
+
+    # Überprüfen, ob der Ordnername bereits existiert
+    if folder_name not in playlists_data:
+        playlists_data[folder_name] = {}
+        save_playlists(playlists_data)
+        tree.insert("", "end", text=folder_name)
+
+
+# --- Funktionen zur GUI-Erstellung ---
 
 def setup_treeview(tree, playlists_data):
     for folder, urls in playlists_data.items():
@@ -276,7 +400,6 @@ def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
                     rowheight=18
                     )
 
-    tree = ttk.Treeview(left_frame)
     tree.grid(row=0, column=0, padx=5, pady=5, sticky="nswe")
     setup_treeview(tree, playlists_data)
     tree.heading("#0", text="Playlists", anchor="w")
@@ -321,20 +444,25 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     url_entry.grid(row=5, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
 
     # BUTTONS: CREATE_FOLDER, ADD_PLAYLIST, UPDATE, REMOVE
-    create_clickable_label(
-        center_frame, "Add", lambda: add_item(tree, folder_entry, url_entry, playlists_data),
+    create_hover_label(
+        center_frame, "Create Folder", lambda: create_folder(tree, folder_entry, playlists_data, progress_display),
         bg="black", fg="white"
-    ).grid(row=6, column=0, padx=5, pady=5)
-    
-    create_clickable_label(
-        center_frame, "Edit", lambda: edit_item(tree, folder_entry, url_entry, playlists_data),
-        bg="black", fg="white"
-    ).grid(row=6, column=1, padx=5, pady=5)
+    ).grid(row=6, column=0, columnspan=1, padx=5, pady=5, sticky="ew")
 
-    create_clickable_label(
-        center_frame, "Remove", lambda: remove_item(tree, playlists_data),
+    create_hover_label(
+        center_frame, "Add Playlist", lambda: create_playlist(tree, folder_entry, url_entry, playlists_data),
         bg="black", fg="white"
-    ).grid(row=6, column=2, padx=5, pady=5)
+    ).grid(row=6, column=1, columnspan=1, padx=5, pady=5, sticky="ew")
+
+    create_hover_label(
+        center_frame, "Update", lambda: update_item(tree, folder_entry, url_entry, playlists_data),
+        bg="black", fg="white"
+    ).grid(row=6, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
+
+    create_hover_label(
+        center_frame, "Delete", lambda: remove_item(tree, playlists_data),
+        bg="black", fg="white"
+    ).grid(row=6, column=3, columnspan=1, padx=5, pady=5, sticky="ew")
 
     # QUALITY
     tk.Label(center_frame, text="Quality", bg=SECONDARY_COLOR, fg="white").grid(
@@ -376,14 +504,14 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
     create_hover_label(
         center_frame, "Download Selected", lambda: download(
-            config, playlists_data, filter_entry, progress_display),
+            config, playlists_data, progress_display),
         bg="#004499",
         fg="white",
     ).grid(row=12, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     create_hover_label(
         center_frame, "Download All", lambda: download(
-            config, playlists_data, filter_entry, progress_display),
+            config, playlists_data, progress_display),
         bg="#009944",
         fg="white",
     ).grid(row=12, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
