@@ -7,6 +7,39 @@ import threading
 
 PRIMARY_COLOR = "#8822FF"
 SECONDARY_COLOR = "#FF2288"
+welcome_text = """
+
+
+┌──────────────────────────────────────────────┐
+│                                              │
+│                                              │
+│   ______   __                                │
+│  /\__  _\ /\ \                               │
+│  \/_/\ \/ \ \/      ___ ___                  │
+│     \ \ \  \/     /' __` __`\                │
+│      \_\ \__      /\ \/\ \/\ \               │
+│      /\_____\     \ \_\ \_\ \_\              │
+│      \/_____/      \/_/\/_/\/_/              │
+│                         ____     _____       │
+│                        /\  _`\  /\___ \      │
+│                __      \ \ \/\ \\/__/\ \     │
+│              /'__`\     \ \ \ \ \  _\ \ \    │
+│             /\ \L\.\_    \ \ \_\ \/\ \_\ \   │
+│             \ \__/.\_\    \ \____/\ \____/   │
+│              \/__/\/_/     \/___/  \/___/    │
+│   ______                 ___        __       │
+│  /\__  _\               /\_ \      /\ \      │
+│  \/_/\ \/    ___     ___\//\ \     \ \ \     │
+│     \ \ \   / __`\  / __`\\ \ \     \ \ \    │
+│      \ \ \ /\ \L\ \/\ \L\ \\_\ \_    \ \_\   │
+│       \ \_\\ \____/\ \____//\____\    \/\_\  │
+│        \/_/ \/___/  \/___/ \/____/     \/_/  │
+│                                              │
+│                                              │
+└──────────────────────────────────────────────┘
+
+
+"""
 
 # --- Download- und Subprozess-Funktionen ---
 
@@ -226,13 +259,7 @@ def create_hover_label(parent, text, command, **kwargs):
     return HoverLabel(parent, text=text, command=command, **kwargs)
 
 
-def setup_left_frame(root, playlists_data, on_select, center_frame_entries):
-    left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
-    left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
-    left_frame.grid_propagate(False)
-    left_frame.grid_columnconfigure(0, weight=1)
-    left_frame.grid_rowconfigure(0, weight=1)
-
+def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
     # TREEVIEW
     style = ttk.Style()
     style.configure("Treeview.Heading",
@@ -401,9 +428,17 @@ def main():
         # relief="solid",
         # bd=2
     )
+    progress_display.insert(1.0, welcome_text)
 
-    center_frame_entries = setup_center_frame(root, playlists_data, tree=None, config=config, progress_display=progress_display)
-    setup_left_frame(root, playlists_data, on_select, center_frame_entries)
+    left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
+    left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
+    left_frame.grid_propagate(False)
+    left_frame.grid_columnconfigure(0, weight=1)
+    left_frame.grid_rowconfigure(0, weight=1)
+    tree = ttk.Treeview(left_frame)
+
+    center_frame_entries = setup_center_frame(root, playlists_data, tree, config=config, progress_display=progress_display)
+    setup_left_frame(tree, playlists_data, on_select, center_frame_entries)
     setup_right_frame(root, progress_display)
 
     # Konfiguriere die Spalten des root Fensters
