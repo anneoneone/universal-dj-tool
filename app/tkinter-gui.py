@@ -5,6 +5,7 @@ from download_playlists import download_playlists
 import subprocess
 import threading
 
+WINDOW_SIZE = "1000x700"
 PRIMARY_COLOR = "#8822FF"
 SECONDARY_COLOR = "#FF2288"
 welcome_text = """
@@ -40,6 +41,25 @@ welcome_text = """
 
 
 """
+
+ROWS = {
+    "FOLDER_TITLE_LABEL": 0,
+    "FOLDER_DESC_LABEL": 1,
+    "FOLDER_ENTRY": 2,
+    "PLAYLIST_TITLE_LABEL": 3,
+    "PLAYLIST_DESC_LABEL": 4,
+    "PLAYLIST_ENTRY": 5,
+    "URL_TITLE_LABEL": 6,
+    "URL_DESC_LABEL": 7,
+    "URL_ENTRY": 8,
+    "PLAYLISTS_BUTTONS": 9,
+    "QUALITY_TITLE_LABEL": 10,
+    "QUALITY_FORMAT_LABEL": 11,
+    "QUALITY_BUTTONS": 12,
+    "CONVERT_TITLE_LABEL": 13,
+    "CONVERT_BUTTONS": 14,
+    "DOWNLOAD_BUTTONS": 15,
+}
 
 # --- Helper Functions ---
 
@@ -97,20 +117,23 @@ def download(config, playlists_data, text_widget):
 # --- Funktionen zum Bearbeiten der Playlist-Daten ---
 
 
-def on_select(event, tree, folder_entry, url_entry, playlists_data):
-    selected_item = tree.focus()
-    item_text = tree.item(selected_item, "text")
-    parent_item = tree.parent(selected_item)
+def on_select(event, tree, textentry_folder, textentry_playlist, textentry_url, playlists_data):
+    tree_selected_item = tree.focus()
+    item_text = tree.item(tree_selected_item, "text")
+    parent_item = tree.parent(tree_selected_item)
 
-    folder_entry.delete(0, tk.END)
-    url_entry.delete(0, tk.END)
+    textentry_folder.delete(0, tk.END)
+    textentry_playlist.delete(0, tk.END)
+    textentry_url.delete(0, tk.END)
 
     if parent_item:
         url = playlists_data[tree.item(parent_item, "text")][item_text]
-        folder_entry.insert(0, item_text)
-        url_entry.insert(0, url)
+        folder_name = tree.item(parent_item, "text")
+        textentry_folder.insert(0, folder_name)
+        textentry_playlist.insert(0, item_text)
+        textentry_url.insert(0, url)
     else:
-        folder_entry.insert(0, item_text)
+        textentry_folder.insert(0, item_text)
 
 
 # def edit_item(tree, folder_entry, url_entry, playlists_data):
@@ -178,25 +201,25 @@ def on_select(event, tree, folder_entry, url_entry, playlists_data):
 #     save_playlists(playlists_data)
 
 
-def update_item(tree, folder_entry, url_entry, playlists_data):
+def update_item(tree, textentry_folder, textentry_url, playlists_data):
     # Holt den aktuell ausgewählten Eintrag aus dem Treeview
-    selected_item = tree.selection()
+    tree_selected_item = tree.selection()
 
-    if not selected_item:
+    if not tree_selected_item:
         print("No item selected for update.")
         return
 
     # Holt den ursprünglichen Namen und die neue Werte aus den Eingabefeldern
-    item_text = tree.item(selected_item, "text")
-    new_folder_name = folder_entry.get()
-    new_url = url_entry.get()
+    item_text = tree.item(tree_selected_item, "text")
+    new_folder_name = textentry_folder.get()
+    new_url = textentry_url.get()
 
     # Überprüfen, ob die neuen Eingaben gültig sind
     if not new_folder_name:
-        folder_entry.insert(0, "INSERT NAME HERE!")
+        textentry_folder.insert(0, "INSERT NAME HERE!")
         return
     if not new_url:
-        url_entry.insert(0, "INSERT URL HERE!")
+        textentry_url.insert(0, "INSERT URL HERE!")
         return
 
     # Überprüfen, ob das ausgewählte Element ein Ordner oder eine Playlist ist
@@ -204,10 +227,10 @@ def update_item(tree, folder_entry, url_entry, playlists_data):
         # Es handelt sich um einen Ordner
         playlists_data[new_folder_name] = playlists_data.pop(item_text)
         # Aktualisiere den Treeview-Eintrag
-        tree.item(selected_item, text=new_folder_name)
+        tree.item(tree_selected_item, text=new_folder_name)
     else:
         # Es handelt sich um eine Playlist, daher müssen wir den Ordner durchsuchen
-        parent_item = tree.parent(selected_item)
+        parent_item = tree.parent(tree_selected_item)
         if parent_item:  # Die Playlist befindet sich in einem Ordner
             parent_name = tree.item(parent_item, "text")
             if (
@@ -225,7 +248,7 @@ def update_item(tree, folder_entry, url_entry, playlists_data):
             playlists_data[new_folder_name] = new_url
 
         # Aktualisiere den Treeview-Eintrag
-        tree.item(selected_item, text=new_folder_name)
+        tree.item(tree_selected_item, text=new_folder_name)
 
     # Speichert die aktualisierten Playlists im JSON-Objekt
     save_playlists(playlists_data)
@@ -233,9 +256,9 @@ def update_item(tree, folder_entry, url_entry, playlists_data):
 
 # Funktion zum Löschen eines Eintrags
 def remove_item(tree, playlists_data):
-    selected_item = tree.focus()
-    item_text = tree.item(selected_item, "text")
-    parent_item = tree.parent(selected_item)
+    tree_selected_item = tree.focus()
+    item_text = tree.item(tree_selected_item, "text")
+    parent_item = tree.parent(tree_selected_item)
 
     if parent_item:
         folder = tree.item(parent_item, "text")
@@ -246,7 +269,7 @@ def remove_item(tree, playlists_data):
         del playlists_data[item_text]
 
     save_playlists(playlists_data)
-    tree.delete(selected_item)
+    tree.delete(tree_selected_item)
 
 
 def create_playlist(tree, folder_entry, url_entry, playlists_data):
@@ -448,10 +471,12 @@ def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
     tree.grid(row=0, column=0, padx=5, pady=5, sticky="nswe")
     setup_treeview(tree, playlists_data)
     tree.heading("#0", text="Playlists", anchor="w")
-    folder_entry, url_entry = center_frame_entries
+    textentry_folder, textentry_playlist, textentry_url = center_frame_entries
     tree.bind(
         "<<TreeviewSelect>>",
-        lambda event: on_select(event, tree, folder_entry, url_entry, playlists_data),
+        lambda event: on_select(
+            event, tree, textentry_folder, textentry_playlist, textentry_url, playlists_data
+        ),
     )
 
 
@@ -467,54 +492,95 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
 
     # SELECT TARGET DIRECTORY
 
-    # FOLDER / PLAYLIST NAME
-    tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
-        row=0, column=0, padx=5, pady=5, sticky="w"
+    # FOLDER NAME
+    tk.Label(center_frame, text="Folder Name", bg=PRIMARY_COLOR, fg="white").grid(
+        row=ROWS["FOLDER_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
-    tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
-        row=1, column=0, padx=5, pady=5, sticky="w"
-    )
-    folder_entry = tk.Entry(
+    tk.Label(
+        center_frame, text="Folder Description", bg=PRIMARY_COLOR, fg="white"
+    ).grid(row=ROWS["FOLDER_DESC_LABEL"], column=0, padx=5, pady=5, sticky="w")
+    textentry_folder = tk.Entry(
         center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white"
     )
-    folder_entry.grid(row=2, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+    textentry_folder.grid(
+        row=ROWS["FOLDER_ENTRY"], column=0, columnspan=4, padx=5, pady=5, sticky="ew"
+    )
+
+    # PLAYLIST NAME
+    tk.Label(center_frame, text="Playlist Name", bg=PRIMARY_COLOR, fg="white").grid(
+        row=ROWS["PLAYLIST_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(
+        center_frame, text="Playlist Description", bg=PRIMARY_COLOR, fg="white"
+    ).grid(row=ROWS["PLAYLIST_DESC_LABEL"], column=0, padx=5, pady=5, sticky="w")
+    textentry_playlist = tk.Entry(
+        center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white"
+    )
+    textentry_playlist.grid(
+        row=ROWS["PLAYLIST_ENTRY"], column=0, columnspan=4, padx=5, pady=5, sticky="ew"
+    )
 
     # TIDAL PLAYLIST URL
     tk.Label(center_frame, text="URL", bg=SECONDARY_COLOR, fg="white").grid(
-        row=3, column=0, padx=5, pady=5, sticky="w"
+        row=ROWS["URL_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
-    tk.Label(center_frame, text="Folder", bg=PRIMARY_COLOR, fg="white").grid(
-        row=4, column=0, padx=5, pady=5, sticky="w"
+    tk.Label(center_frame, text="URL Description", bg=PRIMARY_COLOR, fg="white").grid(
+        row=ROWS["URL_DESC_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
-    url_entry = tk.Entry(
+    textentry_url = tk.Entry(
         center_frame, bg=PRIMARY_COLOR, fg="white", insertbackground="white"
     )
-    url_entry.grid(row=5, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+    textentry_url.grid(
+        row=ROWS["URL_ENTRY"], column=0, columnspan=4, padx=5, pady=5, sticky="ew"
+    )
 
     # BUTTONS: CREATE_FOLDER, ADD_PLAYLIST, UPDATE, REMOVE
     create_hover_label(
         center_frame,
         "Create Folder",
-        lambda: create_folder(tree, folder_entry, playlists_data, progress_display),
+        lambda: create_folder(tree, textentry_folder, playlists_data, progress_display),
         bg="black",
         fg="white",
-    ).grid(row=6, column=0, columnspan=1, padx=5, pady=5, sticky="ew")
+    ).grid(
+        row=ROWS["PLAYLISTS_BUTTONS"],
+        column=0,
+        columnspan=1,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
     create_hover_label(
         center_frame,
         "Add Playlist",
-        lambda: create_playlist(tree, folder_entry, url_entry, playlists_data),
+        lambda: create_playlist(
+            tree, textentry_folder, textentry_playlist, textentry_url, playlists_data, progress_display
+        ),
         bg="black",
         fg="white",
-    ).grid(row=6, column=1, columnspan=1, padx=5, pady=5, sticky="ew")
+    ).grid(
+        row=ROWS["PLAYLISTS_BUTTONS"],
+        column=1,
+        columnspan=1,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
     create_hover_label(
         center_frame,
         "Update",
-        lambda: update_item(tree, folder_entry, url_entry, playlists_data),
+        lambda: update_item(tree, textentry_folder, textentry_url, playlists_data),
         bg="black",
         fg="white",
-    ).grid(row=6, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
+    ).grid(
+        row=ROWS["PLAYLISTS_BUTTONS"],
+        column=2,
+        columnspan=1,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
     create_hover_label(
         center_frame,
@@ -522,42 +588,62 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         lambda: remove_item(tree, playlists_data),
         bg="black",
         fg="white",
-    ).grid(row=6, column=3, columnspan=1, padx=5, pady=5, sticky="ew")
+    ).grid(
+        row=ROWS["PLAYLISTS_BUTTONS"],
+        column=3,
+        columnspan=1,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
     # QUALITY
     tk.Label(center_frame, text="Quality", bg=SECONDARY_COLOR, fg="white").grid(
-        row=7, column=0, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
     tk.Label(center_frame, text="m4a", bg=SECONDARY_COLOR, fg="white").grid(
-        row=8, column=0, columnspan=2, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_FORMAT_LABEL"],
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky="w",
     )
     tk.Label(center_frame, text="flac", bg=SECONDARY_COLOR, fg="white").grid(
-        row=8, column=2, columnspan=2, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_FORMAT_LABEL"],
+        column=2,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky="w",
     )
 
     tk.Label(center_frame, text="Normal", bg=SECONDARY_COLOR, fg="white").grid(
-        row=9, column=0, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_BUTTONS"], column=0, padx=5, pady=5, sticky="w"
     )
     tk.Label(center_frame, text="High", bg=SECONDARY_COLOR, fg="white").grid(
-        row=9, column=1, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_BUTTONS"], column=1, padx=5, pady=5, sticky="w"
     )
     tk.Label(center_frame, text="HiFi", bg=SECONDARY_COLOR, fg="white").grid(
-        row=9, column=2, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_BUTTONS"], column=2, padx=5, pady=5, sticky="w"
     )
     tk.Label(center_frame, text="Master", bg=SECONDARY_COLOR, fg="white").grid(
-        row=9, column=3, padx=5, pady=5, sticky="w"
+        row=ROWS["QUALITY_BUTTONS"], column=3, padx=5, pady=5, sticky="w"
     )
 
     # CONVERT
     tk.Label(center_frame, text="Convert", bg=SECONDARY_COLOR, fg="white").grid(
-        row=10, column=0, padx=5, pady=5, sticky="w"
+        row=ROWS["CONVERT_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
 
     tk.Label(center_frame, text="mp3", bg=SECONDARY_COLOR, fg="white").grid(
-        row=11, column=0, columnspan=2, padx=5, pady=5, sticky="w"
+        row=ROWS["CONVERT_BUTTONS"], column=0, columnspan=2, padx=5, pady=5, sticky="w"
     )
     tk.Label(center_frame, text="wav", bg=SECONDARY_COLOR, fg="white").grid(
-        row=11, column=2, columnspan=2, padx=5, pady=5, sticky="w"
+        row=ROWS["CONVERT_BUTTONS"], column=2, columnspan=1, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(center_frame, text="aiff", bg=SECONDARY_COLOR, fg="white").grid(
+        row=ROWS["CONVERT_BUTTONS"], column=3, columnspan=1, padx=5, pady=5, sticky="w"
     )
 
     # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
@@ -567,7 +653,14 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         lambda: download(config, playlists_data, progress_display),
         bg="#004499",
         fg="white",
-    ).grid(row=12, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+    ).grid(
+        row=ROWS["DOWNLOAD_BUTTONS"],
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
     create_hover_label(
         center_frame,
@@ -575,9 +668,16 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         lambda: download(config, playlists_data, progress_display),
         bg="#009944",
         fg="white",
-    ).grid(row=12, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
+    ).grid(
+        row=ROWS["DOWNLOAD_BUTTONS"],
+        column=2,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
-    return folder_entry, url_entry
+    return textentry_folder, textentry_playlist, textentry_url
 
 
 def setup_right_frame(root, progress_display):
@@ -597,7 +697,7 @@ def main():
     root = tk.Tk()
     root.title("uDJ Tool")
     root.configure(bg="black")
-    root.geometry("1000x500")
+    root.geometry(WINDOW_SIZE)
     root.resizable(False, False)
 
     # tk.Label(root, bg="#FF2288", height=100, width=3).grid(
