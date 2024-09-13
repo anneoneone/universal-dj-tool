@@ -738,6 +738,12 @@ def main():
         # relief="solid",
         # bd=2
     )
+    progress_display.tag_configure("orange", foreground="orange")
+    progress_display.tag_configure("black", foreground="black")
+    progress_display.tag_configure("green", foreground="green")
+    progress_display.tag_configure("white", foreground="white")
+    progress_display.tag_configure("yellow", foreground="yellow")
+
     progress_display.insert(1.0, welcome_text)
 
     left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
