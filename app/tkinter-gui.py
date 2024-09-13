@@ -272,50 +272,122 @@ def remove_item(tree, playlists_data):
     tree.delete(tree_selected_item)
 
 
-def create_playlist(tree, folder_entry, url_entry, playlists_data):
-    # Holt den aktuell ausgewählten Eintrag aus dem Treeview
-    selected_item = tree.selection()
+def create_playlist(
+    tree,
+    textentry_folder_obj,
+    textentry_playlist_obj,
+    textentry_url_obj,
+    playlists_data,
+    progress_display,
+):
+    tree_selected_item_id = tree.focus()
+    tree_has_item = False
+    textentry_folder_has_item = False
+    selected_folder_name = ""
+    selected_folder_id = 0
+    textentry_folder_name = textentry_folder_obj.get()
 
-    # Holt den Namen und die URL der Playlist aus den Eingabefeldern
-    playlist_name = folder_entry.get()
-    playlist_url = url_entry.get()
+    if tree_selected_item_id:
+        tree_has_item = True
+    if textentry_folder_name:
+        textentry_folder_has_item = True
 
-    # Überprüfen, ob die Eingabefelder ausgefüllt sind
-    if not playlist_name:
-        # folder_entry.insert(0, "INSERT NAME HERE!")
-        return
-    if not playlist_url:
-        # url_entry.insert(0, "INSERT URL HERE!")
-        return
-
-    # Überprüfen, ob ein Ordner ausgewählt ist
-    if selected_item:
-        print("selected_item")
-        # Wenn ein Ordner ausgewählt ist, füge die Playlist in den Ordner ein
-        parent_item = tree.item(selected_item, "text")
-        print(playlists_data)
-        if parent_item in playlists_data:
-            print("parent_item in playlists_data")
-            playlists_data[parent_item][playlist_name] = playlist_url
-            tree.insert(selected_item, "end", text=playlist_name)
+    if tree_has_item:
+        # get tree id and name
+        tree_selected_item_parent_id = tree.parent(tree_selected_item_id)
+        if tree_selected_item_parent_id:
+            tree_folder_id = tree_selected_item_parent_id
         else:
-            print("selected folder not found in json")
-    else:
-        print("else selected_item")
+            tree_folder_id = tree_selected_item_id
+        tree_folder_name = tree.item(tree_folder_id, "text")
+
+    if not tree_has_item and textentry_folder_has_item:
+        selected_folder_name = textentry_folder_name
+        selected_folder_id = create_folder(
+            tree, textentry_folder_obj, playlists_data, progress_display
+        )
+    elif tree_has_item and not textentry_folder_has_item:
+        selected_folder_name = tree_folder_name
+        selected_folder_id = tree_folder_id
+    elif tree_has_item and textentry_folder_has_item:
+        selected_folder_name = textentry_folder_name
+        selected_folder_id = create_folder(
+            tree, textentry_folder_obj, playlists_data, progress_display
+        )
+    elif not tree_has_item and not textentry_folder_has_item:
+        print_progress_display(
+            progress_display,
+            "Select a folder or type a folder name to add a nice playlist!",
+            "black",
+        )
         return
 
-    # Speichert die aktualisierten Playlists im JSON-Objekt
-    save_playlists(playlists_data)
+    # validate playlists
+    playlist_name = textentry_playlist_obj.get()
+    if not playlist_name:
+        print_progress_display(
+            progress_display, "Set the name of your TIDAL playlist!", "black"
+        )
+        return
 
-    # # Fügt die neue Playlist zum Treeview hinzu
-    # if selected_item:
-    #     tree.insert(selected_item, "end", text=playlist_name)
-    # else:
-    #     tree.insert("", "end", text=playlist_name)
+    # validate url
+    playlist_url = textentry_url_obj.get()
+    if not playlist_url:
+        print_progress_display(
+            progress_display, "Set the URL of your TIDAL playlist!", "black"
+        )
+        return
+
+    # check if folder exists in playlists_data
+    if selected_folder_name in playlists_data:
+        # Kinder des Elements abrufen
+        children = playlists_data[selected_folder_name]
+
+        # get all childs
+        print(f"Children of '{selected_folder_name}':")
+        for child_name, child_url in children.items():
+            print(f"Name: {child_name}, URL: {child_url}")
+            if child_name == playlist_name:
+                print_progress_display(
+                    progress_display, "Playlists already present in this folder", "yellow"
+                )
+                return
+            if child_url == playlist_url:
+                print_progress_display(
+                    progress_display, "URL is already used in this folder", "yellow"
+                )
+                return
+    else:
+        print_progress_display(
+            progress_display, "Element " + selected_folder_name + " not found", "black"
+        )
+
+    # add to json and tree
+    playlists_data[selected_folder_name][playlist_name] = playlist_url
+    tree.insert(selected_folder_id, "end", text=playlist_name)
+    print_progress_display(
+        progress_display,
+        "Playlist "
+        + playlist_name
+        + " added to folder "
+        + selected_folder_name
+        + ". Cool!",
+        "green",
+    )
+
+    return
 
 
-def create_folder(tree, folder_entry, playlists_data, progress_display):
-    folder_name = folder_entry.get()
+def find_item_by_name(tree, name):
+    # Diese Funktion durchsucht den Treeview nach einem Element mit dem gegebenen Namen.
+    for item in tree.get_children():
+        if tree.item(item, "text") == name:
+            return item
+    return None
+
+
+def create_folder(tree, textentry_folder, playlists_data, progress_display):
+    folder_name = textentry_folder.get()
 
     if not folder_name:
         print_progress_display(
@@ -326,14 +398,25 @@ def create_folder(tree, folder_entry, playlists_data, progress_display):
     # Überprüfen, ob der Ordnername bereits existiert
     if folder_name not in playlists_data:
         playlists_data[folder_name] = {}
-        save_playlists(playlists_data)
-        tree.insert("", "end", text=folder_name)
+        save_playlists(playlists_data)  # init folder empty
+        new_folder_id = tree.insert("", "end", text=folder_name)
         print_progress_display(
             progress_display,
             'Created folder "' + folder_name + '". Such a cool name!',
             "white",
         )
+        return new_folder_id
     else:
+        # Wenn der Ordner bereits existiert, finde und gib seine ID zurück
+        existing_folder_id = find_item_by_name(tree, folder_name)
+        if existing_folder_id:
+            return existing_folder_id
+        else:
+            return 0
+
+
+def create_folder_button_fn(tree, textentry_folder, playlists_data, progress_display):
+    if create_folder(tree, textentry_folder, playlists_data, progress_display) > 0:
         print_progress_display(
             progress_display, "This folder already exists. Pick another name!", "yellow"
         )
