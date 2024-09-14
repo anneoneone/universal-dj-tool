@@ -136,57 +136,151 @@ def on_select(event, tree, textentry_folder, textentry_playlist, textentry_url, 
         textentry_folder.insert(0, item_text)
 
 
-def update_item(tree, textentry_folder, textentry_url, playlists_data):
-    # Holt den aktuell ausgewählten Eintrag aus dem Treeview
-    tree_selected_item = tree.selection()
+def update_folder(tree, textentry_folder, playlists_data, progress_display):
+    # Holen des ausgewählten Elements im Treeview
+    selected_item = tree.focus()  # Holt die ID des ausgewählten Elements
 
-    if not tree_selected_item:
-        print("No item selected for update.")
+    if not selected_item:
+        print_progress_display(progress_display, "Please select a folder to update!", "red")
         return
 
-    # Holt den ursprünglichen Namen und die neue Werte aus den Eingabefeldern
-    item_text = tree.item(tree_selected_item, "text")
+    # Holt den aktuellen Namen des ausgewählten Elements (Ordners)
+    current_folder_name = tree.item(selected_item, "text")
+
+    # Den neuen Ordnernamen vom Eingabefeld bekommen
     new_folder_name = textentry_folder.get()
-    new_url = textentry_url.get()
 
-    # Überprüfen, ob die neuen Eingaben gültig sind
     if not new_folder_name:
-        textentry_folder.insert(0, "INSERT NAME HERE!")
-        return
-    if not new_url:
-        textentry_url.insert(0, "INSERT URL HERE!")
+        print_progress_display(progress_display, "Please enter a new folder name!", "red")
         return
 
-    # Überprüfen, ob das ausgewählte Element ein Ordner oder eine Playlist ist
-    if item_text in playlists_data:
-        # Es handelt sich um einen Ordner
-        playlists_data[new_folder_name] = playlists_data.pop(item_text)
-        # Aktualisiere den Treeview-Eintrag
-        tree.item(tree_selected_item, text=new_folder_name)
+    # Überprüfen, ob der aktuelle Name des Ordners in den playlists_data existiert
+    if current_folder_name in playlists_data:
+        # Prüfen, ob der neue Name bereits in playlists_data existiert
+        if new_folder_name in playlists_data:
+            print_progress_display(progress_display, "Folder name already exists!", "red")
+            return
+
+        # Aktualisiere den Treeview mit dem neuen Ordnernamen
+        tree.item(selected_item, text=new_folder_name)
+
+        # Aktualisiere die JSON-Datenstruktur (Ordnernamen ändern)
+        playlists_data[new_folder_name] = playlists_data.pop(current_folder_name)
+
+        # Änderungen speichern
+        save_playlists(playlists_data)
+
+        # Zeige eine Erfolgsmeldung an
+        print_progress_display(
+            progress_display,
+            f'Folder "{current_folder_name}" updated to "{new_folder_name}".',
+            "green",
+        )
     else:
-        # Es handelt sich um eine Playlist, daher müssen wir den Ordner durchsuchen
-        parent_item = tree.parent(tree_selected_item)
-        if parent_item:  # Die Playlist befindet sich in einem Ordner
-            parent_name = tree.item(parent_item, "text")
-            if (
-                parent_name in playlists_data
-                and item_text in playlists_data[parent_name]
-            ):
-                playlists_data[parent_name][new_folder_name] = playlists_data[
-                    parent_name
-                ].pop(item_text)
-        else:  # Die Playlist befindet sich auf der obersten Ebene
-            playlists_data[new_folder_name] = playlists_data.pop(item_text)
+        print_progress_display(progress_display, "Selected item is not a folder!", "red")
 
-        # URL aktualisieren, wenn sich diese geändert hat
-        if new_url != playlists_data[new_folder_name]:
-            playlists_data[new_folder_name] = new_url
 
-        # Aktualisiere den Treeview-Eintrag
-        tree.item(tree_selected_item, text=new_folder_name)
+def update_playlist(tree, textentry_folder, textentry_playlist, textentry_url, playlists_data, progress_display):
+    # Holt die ausgewählte Playlist
+    selected_item = tree.focus()  # ID der ausgewählten Playlist
 
-    # Speichert die aktualisierten Playlists im JSON-Objekt
-    save_playlists(playlists_data)
+    if not selected_item:
+        print_progress_display(progress_display, "Please select a playlist to update!", "red")
+        return
+
+    # Holt den aktuellen Namen und URL der ausgewählten Playlist
+    current_playlist_name = tree.item(selected_item, "text")
+
+    # Den neuen Ordnernamen, Playlistnamen und die neue URL aus den Eingabefeldern holen
+    new_folder_name = textentry_folder.get()
+    new_playlist_name = textentry_playlist.get()
+    new_playlist_url = textentry_url.get()
+
+    if not new_playlist_name:
+        print_progress_display(progress_display, "Please enter a new playlist name!", "red")
+        return
+    if not new_playlist_url:
+        print_progress_display(progress_display, "Please enter a new playlist URL!", "red")
+        return
+
+    # Sucht das aktuelle Parent-Element (Ordner), in dem die Playlist liegt
+    parent_item = tree.parent(selected_item)
+    current_folder_name = tree.item(parent_item, "text") if parent_item else None
+
+    # Prüfen, ob ein neuer Ordnername eingegeben wurde
+    if new_folder_name and current_folder_name != new_folder_name:
+        # Prüfen, ob der neue Ordner existiert
+        new_folder_id = None
+        for item_id in tree.get_children():
+            if tree.item(item_id, "text") == new_folder_name:
+                new_folder_id = item_id
+                break
+
+        if new_folder_id:
+            # Verschiebe die Playlist in den neuen Ordner
+            playlists_data[new_folder_name][new_playlist_name] = playlists_data[current_folder_name].pop(current_playlist_name)
+            save_playlists(playlists_data)
+
+            # Update den Tree: Entferne die Playlist aus dem alten Ordner und füge sie dem neuen hinzu
+            tree.delete(selected_item)
+            new_item_id = tree.insert(new_folder_id, "end", text=new_playlist_name)
+            print_progress_display(progress_display, f'Playlist "{current_playlist_name}" moved to folder "{new_folder_name}".', "green")
+
+        else:
+            print_progress_display(progress_display, "New folder does not exist!", "red")
+            return
+    else:
+        # Ordner bleibt gleich, nur Name oder URL werden geändert
+        if current_folder_name and current_playlist_name in playlists_data[current_folder_name]:
+            # Aktualisiere den Namen und die URL der Playlist im JSON-Daten
+            playlists_data[current_folder_name].pop(current_playlist_name)
+            playlists_data[current_folder_name][new_playlist_name] = new_playlist_url
+            save_playlists(playlists_data)
+
+            # Aktualisiere den Tree mit dem neuen Playlistnamen
+            tree.item(selected_item, text=new_playlist_name)
+            print_progress_display(
+                progress_display,
+                f'Playlist "{current_playlist_name}" updated successfully.',
+                "green",
+            )
+        else:
+            print_progress_display(
+                progress_display, "Selected item is not a valid playlist!", "red"
+            )
+
+
+def update_item(
+    tree,
+    textentry_folder,
+    textentry_playlist,
+    textentry_url,
+    playlists_data,
+    progress_display,
+):
+    # Holt den aktuell ausgewählten Eintrag aus dem Treeview
+    tree_selected_item_id = tree.focus()
+
+    if not tree_selected_item_id:
+        print("no item selected in tree")
+        print_progress_display(
+            progress_display, "No item is selected!", "red"
+        )
+        return
+
+    if not tree.parent(tree_selected_item_id):
+        update_folder(tree, textentry_folder, playlists_data, progress_display)
+    else:
+        update_playlist(
+            tree,
+            textentry_folder,
+            textentry_playlist,
+            textentry_url,
+            playlists_data,
+            progress_display,
+        )
+
+    return
 
 
 # Funktion zum Löschen eines Eintrags
@@ -231,8 +325,10 @@ def create_playlist(
         # get tree id and name
         tree_selected_item_parent_id = tree.parent(tree_selected_item_id)
         if tree_selected_item_parent_id:
+            # item is folder
             tree_folder_id = tree_selected_item_parent_id
         else:
+            # item is playlist
             tree_folder_id = tree_selected_item_id
         tree_folder_name = tree.item(tree_folder_id, "text")
 
@@ -589,7 +685,14 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     create_hover_label(
         center_frame,
         "Update",
-        lambda: update_item(tree, textentry_folder, textentry_url, playlists_data),
+        lambda: update_item(
+            tree,
+            textentry_folder,
+            textentry_playlist,
+            textentry_url,
+            playlists_data,
+            progress_display,
+        ),
         bg="black",
         fg="white",
     ).grid(
