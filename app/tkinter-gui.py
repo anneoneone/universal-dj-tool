@@ -66,11 +66,11 @@ ROWS = {
 
 def print_progress_display(progress_display, text, tag="white"):
     symbol = ""
-    if tag == "white":
+    if tag == "green":
         symbol = "✓ "
     elif tag == "yellow":
         symbol = "⚠ "
-    elif tag == "black":
+    elif tag == "red":
         symbol = "✗ "
     progress_display.insert(tk.END, symbol + text + "\n", tag)
     progress_display.see(tk.END)
@@ -253,7 +253,7 @@ def create_playlist(
         print_progress_display(
             progress_display,
             "Select a folder or type a folder name to add a nice playlist!",
-            "black",
+            "red",
         )
         return
 
@@ -261,7 +261,7 @@ def create_playlist(
     playlist_name = textentry_playlist_obj.get()
     if not playlist_name:
         print_progress_display(
-            progress_display, "Set the name of your TIDAL playlist!", "black"
+            progress_display, "Set the name of your TIDAL playlist!", "red"
         )
         return
 
@@ -269,7 +269,7 @@ def create_playlist(
     playlist_url = textentry_url_obj.get()
     if not playlist_url:
         print_progress_display(
-            progress_display, "Set the URL of your TIDAL playlist!", "black"
+            progress_display, "Set the URL of your TIDAL playlist!", "red"
         )
         return
 
@@ -294,7 +294,7 @@ def create_playlist(
                 return
     else:
         print_progress_display(
-            progress_display, "Element " + selected_folder_name + " not found", "black"
+            progress_display, "Element " + selected_folder_name + " not found", "red"
         )
 
     # add to json and tree
@@ -326,7 +326,7 @@ def create_folder(tree, textentry_folder, playlists_data, progress_display):
 
     if not folder_name:
         print_progress_display(
-            progress_display, "Give your folder a nice name!", "black"
+            progress_display, "Give your folder a nice name!", "red"
         )
         return
 
@@ -338,7 +338,7 @@ def create_folder(tree, textentry_folder, playlists_data, progress_display):
         print_progress_display(
             progress_display,
             'Created folder "' + folder_name + '". Such a cool name!',
-            "white",
+            "green",
         )
         return new_folder_id
     else:
@@ -499,7 +499,8 @@ def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
 
 
 def setup_center_frame(root, playlists_data, tree, config, progress_display):
-    center_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
+    center_frame = tk.Frame(root, bg="black", width=200)
+    # center_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
     center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
     center_frame.grid_columnconfigure(
         0, weight=1
@@ -722,7 +723,7 @@ def main():
     #     row=0, column=0, columnspan=10, rowspan=10, padx=5, pady=5, sticky="nw"
     # )
 
-    create_stripes(root, 30, "red", "green")
+    create_stripes(root, 30, PRIMARY_COLOR, SECONDARY_COLOR)
 
     progress_display = tk.Text(
         root,
@@ -731,7 +732,8 @@ def main():
         border=0,
         borderwidth=0,
         wrap=tk.WORD,
-        bg="#8822FF",
+        # bg="#8822FF",
+        bg="black",
         fg="white",
         highlightthickness=0,
         # insertbackground="white",
@@ -740,6 +742,7 @@ def main():
     )
     progress_display.tag_configure("orange", foreground="orange")
     progress_display.tag_configure("black", foreground="black")
+    progress_display.tag_configure("red", foreground="red")
     progress_display.tag_configure("green", foreground="green")
     progress_display.tag_configure("white", foreground="white")
     progress_display.tag_configure("yellow", foreground="yellow")
