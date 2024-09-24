@@ -8,6 +8,27 @@ import threading
 WINDOW_SIZE = "1000x700"
 PRIMARY_COLOR = "#8822FF"
 SECONDARY_COLOR = "#FF2288"
+
+ACTIVE_LABEL_BG = PRIMARY_COLOR
+INACTIVE_LABEL_BG = SECONDARY_COLOR
+
+quality_mode = None
+convert_mode = None
+active_quality_label = None  # Speichert das aktuell aktive Label
+active_convert_label = None  # Speichert das aktuell aktive Label
+quality_buttons = [
+    ("Normal", 0),
+    ("High", 1),
+    ("HiFi", 2),
+    ("Master", 3)
+]
+convert_buttons = [
+    ("Don't Convert", 0),
+    ("mp3", 1),
+    ("aiff", 2),
+    ("wav", 3)
+]
+
 welcome_text = """
 
 
@@ -219,6 +240,35 @@ def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
     )
 
 
+def select_quality(event, label, quality):
+    global active_quality_label, quality_mode
+    # Setze die Hintergrundfarbe des vorherigen Labels zurück
+    if active_quality_label:
+        active_quality_label.config(bg=INACTIVE_LABEL_BG)
+    
+    # Setze das neue Label als aktiv
+    label.config(bg=ACTIVE_LABEL_BG)
+    active_quality_label = label
+    
+    # Aktualisiere den ausgewählten Qualitätsmodus
+    quality_mode = quality
+    print(f"Selected quality: {quality_mode}")
+
+def select_convert(event, label, convert):
+    global active_convert_label, convert_mode
+    # Setze die Hintergrundfarbe des vorherigen Labels zurück
+    if active_convert_label:
+        active_convert_label.config(bg=INACTIVE_LABEL_BG)
+    
+    # Setze das neue Label als aktiv
+    label.config(bg=ACTIVE_LABEL_BG)
+    active_convert_label = label
+    
+    # Aktualisiere den ausgewählten Qualitätsmodus
+    convert_mode = convert
+    print(f"Selected convert: {convert_mode}")
+
+
 def setup_center_frame(root, playlists_data, tree, config, progress_display):
     center_frame = tk.Frame(root, bg="black", width=200)
     # center_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
@@ -365,33 +415,39 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         sticky="w",
     )
 
-    tk.Label(center_frame, text="Normal", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["QUALITY_BUTTONS"], column=0, padx=5, pady=5, sticky="w"
-    )
-    tk.Label(center_frame, text="High", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["QUALITY_BUTTONS"], column=1, padx=5, pady=5, sticky="w"
-    )
-    tk.Label(center_frame, text="HiFi", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["QUALITY_BUTTONS"], column=2, padx=5, pady=5, sticky="w"
-    )
-    tk.Label(center_frame, text="Master", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["QUALITY_BUTTONS"], column=3, padx=5, pady=5, sticky="w"
-    )
+    for text, col in quality_buttons:
+        label = tk.Label(
+            center_frame,
+            text=text,
+            bg=SECONDARY_COLOR,
+            fg="white",
+            padx=10,  # Padding innerhalb des Labels
+            pady=5    # Padding innerhalb des Labels
+        )
+        label.grid(row=ROWS["QUALITY_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
+        
+        # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
+        label.bind("<Button-1>", lambda event, l=label, t=text: select_quality(event, l, t))
 
     # CONVERT
     tk.Label(center_frame, text="Convert", bg=SECONDARY_COLOR, fg="white").grid(
         row=ROWS["CONVERT_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
 
-    tk.Label(center_frame, text="mp3", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["CONVERT_BUTTONS"], column=0, columnspan=2, padx=5, pady=5, sticky="w"
-    )
-    tk.Label(center_frame, text="wav", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["CONVERT_BUTTONS"], column=2, columnspan=1, padx=5, pady=5, sticky="w"
-    )
-    tk.Label(center_frame, text="aiff", bg=SECONDARY_COLOR, fg="white").grid(
-        row=ROWS["CONVERT_BUTTONS"], column=3, columnspan=1, padx=5, pady=5, sticky="w"
-    )
+    for text, col in convert_buttons:
+        label = tk.Label(
+            center_frame,
+            text=text,
+            bg=SECONDARY_COLOR,
+            fg="white",
+            padx=10,  # Padding innerhalb des Labels
+            pady=5    # Padding innerhalb des Labels
+        )
+        label.grid(row=ROWS["CONVERT_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
+        
+        # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
+        label.bind("<Button-1>", lambda event, l=label, t=text: select_convert(event, l, t))
+
 
     # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
     create_hover_label(
@@ -438,8 +494,9 @@ def setup_right_frame(root, progress_display):
 
 
 def run_tidal_dl(link, download_dir, text_widget):
+    global quality_mode
     process = subprocess.Popen(
-        ["tidal-dl", "-l", link, "-o", download_dir],
+        ["tidal-dl", "--link", link, "--output", download_dir, "--quality", quality_mode],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
