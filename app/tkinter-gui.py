@@ -53,7 +53,7 @@ welcome_text = """
  │  /\__  _\               /\_ \      /\ \      │
  │  \/_/\ \/    ___     ___\ /\ \     \ \ \     │
  │     \ \ \   / __`\  / __`\\ \ \     \ \ \    │
- │      \ \ \ /\ \L\ \/\ \L\ \\_\ \_    \ \_\   │
+ │      \ \ \  \ \L\ \/\ \L\ \\_\ \_    \ \_\   │
  │       \ \_\\ \____/\ \____//\____\    \/\_\  │
  │        \/_/ \/___/  \/___/ \/____/     \/_/  │
  │                                              │
@@ -94,8 +94,12 @@ class HoverLabel(tk.Label):
             cursor="hand2",
             compound="left",
             state="active",
-            font=("Comic Sans MS", 16, "bold"),
-            relief=tk.RAISED,
+            font=("Courier New", 14, "bold"),
+            highlightthickness=1,  # Dünne Umrandung
+            highlightbackground="pink",  # Farbe der Umrandung
+            highlightcolor="pink",  # Farbe, wenn es den Fokus hat
+            relief="flat",  # Stil der Umrandung
+            bd=1  # Dicke der Umrandung
         )
 
         self.toggle_bg = "#FF2288"
@@ -130,7 +134,7 @@ class HoverLabel(tk.Label):
             new_bg = (
                 self.toggle_bg if current_bg == self.default_bg else self.default_bg
             )
-            self.configure(bg=new_bg, relief=tk.SUNKEN)
+            self.configure(bg=new_bg)
             self.after_id = self.after(200, self.toggle_background)
 
     def on_enter(self, event):
@@ -141,7 +145,7 @@ class HoverLabel(tk.Label):
         self.is_hovering = False
         if self.after_id:
             self.after_cancel(self.after_id)
-        self.configure(bg=self.default_bg, fg=self.default_fg, relief=tk.RAISED)
+        self.configure(bg=self.default_bg, fg=self.default_fg)
 
     def on_click(self, event):
         if self.command:
@@ -151,23 +155,6 @@ class HoverLabel(tk.Label):
 
 def create_hover_label(parent, text, command, **kwargs):
     return HoverLabel(parent, text=text, command=command, **kwargs)
-
-
-def create_clickable_label(parent, text, command, bg=PRIMARY_COLOR, fg="white"):
-    label = tk.Label(
-        parent,
-        text=text,
-        font=("Comic Sans MS", 16, "bold"),
-        relief=tk.RAISED,
-        bg=bg,
-        fg=fg,
-        border=1,
-        borderwidth=3,
-        cursor="hand2",
-    )
-    label.bind("<Button-1>", lambda e: command())
-
-    return label
 
 
 def setup_treeview(tree, playlists_data):
