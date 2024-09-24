@@ -39,7 +39,7 @@ class HoverLabel(tk.Label):
             highlightbackground="pink",  # Farbe der Umrandung
             highlightcolor="pink",  # Farbe, wenn es den Fokus hat
             relief="flat",  # Stil der Umrandung
-            bd=1  # Dicke der Umrandung
+            bd=1,  # Dicke der Umrandung
         )
 
         self.toggle_bg = "#FF2288"
@@ -106,8 +106,7 @@ def setup_treeview(tree, playlists_data):
 
 def print_progress_display(progress_display, text, tag="white"):
 
-# --- Helper Functions ---
-
+    # --- Helper Functions ---
 
     symbol = ""
     if tag == "green":
@@ -162,7 +161,12 @@ def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
     tree.bind(
         "<<TreeviewSelect>>",
         lambda event: on_select(
-            event, tree, textentry_folder, textentry_playlist, textentry_url, playlists_data
+            event,
+            tree,
+            textentry_folder,
+            textentry_playlist,
+            textentry_url,
+            playlists_data,
         ),
     )
 
@@ -172,25 +176,26 @@ def select_quality(event, label, quality):
     # Setze die Hintergrundfarbe des vorherigen Labels zurück
     if active_quality_label:
         active_quality_label.config(bg=INACTIVE_LABEL_BG)
-    
+
     # Setze das neue Label als aktiv
     label.config(bg=ACTIVE_LABEL_BG)
     active_quality_label = label
-    
+
     # Aktualisiere den ausgewählten Qualitätsmodus
     quality_mode = quality
     print(f"Selected quality: {quality_mode}")
+
 
 def select_convert(event, label, convert):
     global active_convert_label, convert_mode
     # Setze die Hintergrundfarbe des vorherigen Labels zurück
     if active_convert_label:
         active_convert_label.config(bg=INACTIVE_LABEL_BG)
-    
+
     # Setze das neue Label als aktiv
     label.config(bg=ACTIVE_LABEL_BG)
     active_convert_label = label
-    
+
     # Aktualisiere den ausgewählten Qualitätsmodus
     convert_mode = convert
     print(f"Selected convert: {convert_mode}")
@@ -244,6 +249,7 @@ def create_folder_ui(center_frame):
     )
 
     return textentry_folder
+
 
 def create_playlist_ui(center_frame):
     # Create UI elements for playlist
@@ -402,12 +408,15 @@ def create_quality_ui(center_frame):
             bg=SECONDARY_COLOR,
             fg="white",
             padx=10,  # Padding innerhalb des Labels
-            pady=5    # Padding innerhalb des Labels
+            pady=5,  # Padding innerhalb des Labels
         )
         label.grid(row=ROWS["QUALITY_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
 
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
-        label.bind("<Button-1>", lambda event, l=label, t=text: select_quality(event, l, t))
+        label.bind(
+            "<Button-1>", lambda event, l=label, t=text: select_quality(event, l, t)
+        )
+
 
 def create_convert_ui(center_frame):
     # Create UI elements for conversion options
@@ -424,12 +433,14 @@ def create_convert_ui(center_frame):
             bg=SECONDARY_COLOR,
             fg="white",
             padx=10,  # Padding innerhalb des Labels
-            pady=5    # Padding innerhalb des Labels
+            pady=5,  # Padding innerhalb des Labels
         )
         label.grid(row=ROWS["CONVERT_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
-        
+
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
-        label.bind("<Button-1>", lambda event, l=label, t=text: select_convert(event, l, t))
+        label.bind(
+            "<Button-1>", lambda event, l=label, t=text: select_convert(event, l, t)
+        )
 
 
 def create_download_buttons_ui(center_frame, config, playlists_data, progress_display):
@@ -556,9 +567,7 @@ def create_folder(tree, textentry_folder, playlists_data, progress_display):
     folder_name = textentry_folder.get()
 
     if not folder_name:
-        print_progress_display(
-            progress_display, "Give your folder a nice name!", "red"
-        )
+        print_progress_display(progress_display, "Give your folder a nice name!", "red")
         return
 
     # Überprüfen, ob der Ordnername bereits existiert
@@ -660,7 +669,9 @@ def create_playlist(
             print(f"Name: {child_name}, URL: {child_url}")
             if child_name == playlist_name:
                 print_progress_display(
-                    progress_display, "Playlists already present in this folder", "yellow"
+                    progress_display,
+                    "Playlists already present in this folder",
+                    "yellow",
                 )
                 return
             if child_url == playlist_url:
@@ -694,7 +705,9 @@ def update_folder(tree, textentry_folder, playlists_data, progress_display):
     selected_item = tree.focus()  # Holt die ID des ausgewählten Elements
 
     if not selected_item:
-        print_progress_display(progress_display, "Please select a folder to update!", "red")
+        print_progress_display(
+            progress_display, "Please select a folder to update!", "red"
+        )
         return
 
     # Holt den aktuellen Namen des ausgewählten Elements (Ordners)
@@ -704,14 +717,18 @@ def update_folder(tree, textentry_folder, playlists_data, progress_display):
     new_folder_name = textentry_folder.get()
 
     if not new_folder_name:
-        print_progress_display(progress_display, "Please enter a new folder name!", "red")
+        print_progress_display(
+            progress_display, "Please enter a new folder name!", "red"
+        )
         return
 
     # Überprüfen, ob der aktuelle Name des Ordners in den playlists_data existiert
     if current_folder_name in playlists_data:
         # Prüfen, ob der neue Name bereits in playlists_data existiert
         if new_folder_name in playlists_data:
-            print_progress_display(progress_display, "Folder name already exists!", "red")
+            print_progress_display(
+                progress_display, "Folder name already exists!", "red"
+            )
             return
 
         # Aktualisiere den Treeview mit dem neuen Ordnernamen
@@ -730,7 +747,9 @@ def update_folder(tree, textentry_folder, playlists_data, progress_display):
             "green",
         )
     else:
-        print_progress_display(progress_display, "Selected item is not a folder!", "red")
+        print_progress_display(
+            progress_display, "Selected item is not a folder!", "red"
+        )
 
 
 def update_playlist(
@@ -745,7 +764,9 @@ def update_playlist(
     selected_item = tree.focus()  # ID der ausgewählten Playlist
 
     if not selected_item:
-        print_progress_display(progress_display, "Please select a playlist to update!", "red")
+        print_progress_display(
+            progress_display, "Please select a playlist to update!", "red"
+        )
         return
 
     # Holt den aktuellen Namen und URL der ausgewählten Playlist
@@ -757,10 +778,14 @@ def update_playlist(
     new_playlist_url = textentry_url.get()
 
     if not new_playlist_name:
-        print_progress_display(progress_display, "Please enter a new playlist name!", "red")
+        print_progress_display(
+            progress_display, "Please enter a new playlist name!", "red"
+        )
         return
     if not new_playlist_url:
-        print_progress_display(progress_display, "Please enter a new playlist URL!", "red")
+        print_progress_display(
+            progress_display, "Please enter a new playlist URL!", "red"
+        )
         return
 
     # Sucht das aktuelle Parent-Element (Ordner), in dem die Playlist liegt
@@ -778,20 +803,31 @@ def update_playlist(
 
         if new_folder_id:
             # Verschiebe die Playlist in den neuen Ordner
-            playlists_data[new_folder_name][new_playlist_name] = playlists_data[current_folder_name].pop(current_playlist_name)
+            playlists_data[new_folder_name][new_playlist_name] = playlists_data[
+                current_folder_name
+            ].pop(current_playlist_name)
             save_playlists(playlists_data)
 
             # Update den Tree: Entferne die Playlist aus dem alten Ordner und füge sie dem neuen hinzu
             tree.delete(selected_item)
             new_item_id = tree.insert(new_folder_id, "end", text=new_playlist_name)
-            print_progress_display(progress_display, f'Playlist "{current_playlist_name}" moved to folder "{new_folder_name}".', "green")
+            print_progress_display(
+                progress_display,
+                f'Playlist "{current_playlist_name}" moved to folder "{new_folder_name}".',
+                "green",
+            )
 
         else:
-            print_progress_display(progress_display, "New folder does not exist!", "red")
+            print_progress_display(
+                progress_display, "New folder does not exist!", "red"
+            )
             return
     else:
         # Ordner bleibt gleich, nur Name oder URL werden geändert
-        if current_folder_name and current_playlist_name in playlists_data[current_folder_name]:
+        if (
+            current_folder_name
+            and current_playlist_name in playlists_data[current_folder_name]
+        ):
             # Aktualisiere den Namen und die URL der Playlist im JSON-Daten
             playlists_data[current_folder_name].pop(current_playlist_name)
             playlists_data[current_folder_name][new_playlist_name] = new_playlist_url
@@ -823,9 +859,7 @@ def update_item(
 
     if not tree_selected_item_id:
         print("no item selected in tree")
-        print_progress_display(
-            progress_display, "No item is selected!", "red"
-        )
+        print_progress_display(progress_display, "No item is selected!", "red")
         return
 
     if not tree.parent(tree_selected_item_id):
@@ -864,7 +898,7 @@ def remove_item(tree, playlists_data):
         # Lösche den Ordner direkt
         if item_text in playlists_data:
             del playlists_data[item_text]
-        
+
         # Lösche den Ordner aus dem Treeview
         tree.delete(tree_selected_item)
 
@@ -901,7 +935,7 @@ def main():
         highlightbackground="pink",  # Farbe der Umrandung
         highlightcolor="pink",  # Farbe, wenn es den Fokus hat
         relief="ridge",  # Stil der Umrandung
-        bd=1  # Dicke der Umrandung
+        bd=1,  # Dicke der Umrandung
     )
     progress_display.tag_configure("orange", foreground="orange")
     progress_display.tag_configure("black", foreground="black")
