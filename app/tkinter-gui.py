@@ -257,18 +257,38 @@ def select_convert(event, label, convert):
 
 
 def setup_center_frame(root, playlists_data, tree, config, progress_display):
+    center_frame = create_center_frame(root)
+    textentry_folder = create_folder_ui(center_frame)
+    textentry_playlist = create_playlist_ui(center_frame)
+    textentry_url = create_url_ui(center_frame)
+
+    create_buttons_ui(
+        center_frame,
+        tree,
+        textentry_folder,
+        textentry_playlist,
+        textentry_url,
+        playlists_data,
+        progress_display,
+    )
+    create_quality_ui(center_frame)
+    create_convert_ui(center_frame)
+    create_download_buttons_ui(center_frame, config, playlists_data, progress_display)
+
+    return textentry_folder, textentry_playlist, textentry_url
+
+
+def create_center_frame(root):
     center_frame = tk.Frame(root, bg="black", width=200)
-    # center_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
     center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
-    center_frame.grid_columnconfigure(
-        0, weight=1
-    )  # Adjust weight to 1 for equal width distribution
-    center_frame.grid_columnconfigure(1, weight=1)
-    center_frame.grid_columnconfigure(2, weight=1)
-    center_frame.grid_columnconfigure(3, weight=1)
+    for i in range(4):
+        center_frame.grid_columnconfigure(i, weight=1)
+    return center_frame
 
-    # SELECT TARGET DIRECTORY
 
+def create_folder_ui(center_frame):
+    # Create UI elements for folder
+    # Add labels, entries, and descriptions
     # FOLDER NAME
     tk.Label(center_frame, text="Folder Name", bg=PRIMARY_COLOR, fg="white").grid(
         row=ROWS["FOLDER_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
@@ -283,6 +303,11 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         row=ROWS["FOLDER_ENTRY"], column=0, columnspan=4, padx=5, pady=5, sticky="ew"
     )
 
+    return textentry_folder
+
+def create_playlist_ui(center_frame):
+    # Create UI elements for playlist
+    # Add labels, entries, and descriptions
     # PLAYLIST NAME
     tk.Label(center_frame, text="Playlist Name", bg=PRIMARY_COLOR, fg="white").grid(
         row=ROWS["PLAYLIST_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
@@ -297,6 +322,12 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         row=ROWS["PLAYLIST_ENTRY"], column=0, columnspan=4, padx=5, pady=5, sticky="ew"
     )
 
+    return textentry_playlist
+
+
+def create_url_ui(center_frame):
+    # Create UI elements for URL
+    # Add labels, entries, and descriptions
     # TIDAL PLAYLIST URL
     tk.Label(center_frame, text="URL", bg=SECONDARY_COLOR, fg="white").grid(
         row=ROWS["URL_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
@@ -311,6 +342,19 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         row=ROWS["URL_ENTRY"], column=0, columnspan=4, padx=5, pady=5, sticky="ew"
     )
 
+    return textentry_url
+
+
+def create_buttons_ui(
+    center_frame,
+    tree,
+    textentry_folder,
+    textentry_playlist,
+    textentry_url,
+    playlists_data,
+    progress_display,
+):
+    # Create buttons for actions like create, add, update, remove
     # BUTTONS: CREATE_FOLDER, ADD_PLAYLIST, UPDATE, REMOVE
     create_hover_label(
         center_frame,
@@ -331,7 +375,12 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         center_frame,
         "Add Playlist",
         lambda: create_playlist(
-            tree, textentry_folder, textentry_playlist, textentry_url, playlists_data, progress_display
+            tree,
+            textentry_folder,
+            textentry_playlist,
+            textentry_url,
+            playlists_data,
+            progress_display,
         ),
         bg="black",
         fg="white",
@@ -381,6 +430,10 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         sticky="ew",
     )
 
+
+def create_quality_ui(center_frame):
+    # Create UI elements for quality selection
+    # Add labels for quality options
     # QUALITY
     tk.Label(center_frame, text="Quality", bg=SECONDARY_COLOR, fg="white").grid(
         row=ROWS["QUALITY_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
@@ -412,10 +465,13 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
             pady=5    # Padding innerhalb des Labels
         )
         label.grid(row=ROWS["QUALITY_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
-        
+
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
         label.bind("<Button-1>", lambda event, l=label, t=text: select_quality(event, l, t))
 
+def create_convert_ui(center_frame):
+    # Create UI elements for conversion options
+    # Add labels for conversion options
     # CONVERT
     tk.Label(center_frame, text="Convert", bg=SECONDARY_COLOR, fg="white").grid(
         row=ROWS["CONVERT_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
@@ -436,6 +492,8 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         label.bind("<Button-1>", lambda event, l=label, t=text: select_convert(event, l, t))
 
 
+def create_download_buttons_ui(center_frame, config, playlists_data, progress_display):
+    # Create buttons for downloading selected and all items
     # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
     create_hover_label(
         center_frame,
@@ -467,8 +525,6 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
         sticky="ew",
     )
 
-    return textentry_folder, textentry_playlist, textentry_url
-
 
 def setup_right_frame(root, progress_display):
     progress_display.grid(row=0, column=2, padx=10, pady=10, sticky="nswe")
@@ -483,7 +539,15 @@ def setup_right_frame(root, progress_display):
 def run_tidal_dl(link, download_dir, text_widget):
     global quality_mode
     process = subprocess.Popen(
-        ["tidal-dl", "--link", link, "--output", download_dir, "--quality", quality_mode],
+        [
+            "tidal-dl",
+            "--link",
+            link,
+            "--output",
+            download_dir,
+            "--quality",
+            quality_mode,
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
