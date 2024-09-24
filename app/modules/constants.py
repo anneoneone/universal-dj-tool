@@ -1,4 +1,9 @@
 # Constants for the GUI Application
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLAYLISTS_FILE = os.path.join(SCRIPT_DIR, "..", "playlists.json")
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "..", "config.yaml")
 
 WINDOW_SIZE = "1000x700"
 PRIMARY_COLOR = "#8822FF"

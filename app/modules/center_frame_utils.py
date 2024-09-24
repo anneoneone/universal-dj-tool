@@ -1,11 +1,6 @@
-import tkinter as tk
-import subprocess
-import threading
-
-from progress_display import print_progress_display
-from utils import save_playlists
-
-from constants import (
+from modules.progress_display import print_progress_display
+from modules.utils import save_playlists
+from modules.constants import (
     ACTIVE_LABEL_BG,
     INACTIVE_LABEL_BG,
 )
@@ -16,51 +11,7 @@ active_quality_label = None  # Speichert das aktuell aktive Label
 active_convert_label = None  # Speichert das aktuell aktive Label
 
 
-def run_tidal_dl(link, download_dir, text_widget):
-    global quality_mode
-    process = subprocess.Popen(
-        [
-            "tidal-dl",
-            "--link",
-            link,
-            "--output",
-            download_dir,
-            "--quality",
-            quality_mode,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-    )
-
-    def update_text_widget(stream):
-        for line in iter(stream.readline, ""):
-            text_widget.insert(tk.END, line)
-            text_widget.see(tk.END)  # Scroll to the end of the Text widget
-        stream.close()
-
-    threading.Thread(target=update_text_widget, args=(process.stdout,)).start()
-    threading.Thread(target=update_text_widget, args=(process.stderr,)).start()
-
-    process.wait()
-    text_widget.insert(tk.END, "\nDownload completed.\n")
-    text_widget.see(tk.END)
-
-
-def download(config, playlists_data, text_widget):
-    def download_thread():
-        music_directory = config["music_directory"]
-
-        for category_name, category_playlists in playlists_data.items():
-            for link_name, link in category_playlists.items():
-                download_dir = f"{music_directory}/{category_name}/{link_name}"
-                run_tidal_dl(link, download_dir, text_widget)
-
-    threading.Thread(target=download_thread).start()
-
-
-def select_quality(event, label, quality):
+def set_quality_setting(event, label, quality):
     global active_quality_label, quality_mode
     # Setze die Hintergrundfarbe des vorherigen Labels zurück
     if active_quality_label:
@@ -343,7 +294,6 @@ def update_playlist(
             ].pop(current_playlist_name)
             save_playlists(playlists_data)
 
-            # Update den Tree: Entferne die Playlist aus dem alten Ordner und füge sie dem neuen hinzu
             tree.delete(selected_item)
             new_item_id = tree.insert(new_folder_id, "end", text=new_playlist_name)
             print_progress_display(

@@ -1,7 +1,6 @@
 from tkinter import ttk
 
-
-from constants import (
+from modules.constants import (
     PRIMARY_COLOR,
     SECONDARY_COLOR,
 )

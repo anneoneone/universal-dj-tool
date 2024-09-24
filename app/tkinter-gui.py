@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
-from utils import load_playlists, load_config
 
-from left_frame import setup_left_frame
-from center_frame import setup_center_frame
-from progress_display import create_progress_display
-from constants import (
+from modules.utils import load_playlists, load_config
+from modules.left_frame import setup_left_frame
+from modules.center_frame import setup_center_frame
+from modules.progress_display import create_progress_display
+from modules.constants import (
     WINDOW_SIZE,
     PRIMARY_COLOR,
 )

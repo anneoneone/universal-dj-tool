@@ -1,8 +1,6 @@
 import tkinter as tk
 
-from constants import (
-    welcome_text,
-)
+from modules.constants import welcome_text
 
 
 def create_progress_display(root):
@@ -30,9 +28,6 @@ def create_progress_display(root):
 
 
 def print_progress_display(progress_display, text, tag="white"):
-
-    # --- Helper Functions ---
-
     symbol = ""
     if tag == "green":
         symbol = "✓ "
