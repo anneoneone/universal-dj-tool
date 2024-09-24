@@ -5,6 +5,7 @@ from download_playlists import download_playlists
 import subprocess
 import threading
 
+from progress_display import create_progress_display, print_progress_display
 from constants import (
     WINDOW_SIZE,
     PRIMARY_COLOR,
@@ -14,7 +15,6 @@ from constants import (
     quality_buttons,
     convert_buttons,
     ROWS,
-    welcome_text,
 )
 
 quality_mode = None
@@ -104,21 +104,6 @@ def setup_treeview(tree, playlists_data):
             tree.insert(folder_id, "end", text=url_name)
 
 
-def print_progress_display(progress_display, text, tag="white"):
-
-    # --- Helper Functions ---
-
-    symbol = ""
-    if tag == "green":
-        symbol = "✓ "
-    elif tag == "yellow":
-        symbol = "⚠ "
-    elif tag == "red":
-        symbol = "✗ "
-    progress_display.insert(tk.END, symbol + text + "\n", tag)
-    progress_display.see(tk.END)
-
-
 def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
     # Berechne die Anzahl der Streifen basierend auf der Fensterbreite und der Streifenbreite
     window_width = root.winfo_screenwidth()
@@ -135,7 +120,7 @@ def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
         stripe.place(x=i * stripe_width, y=0, width=stripe_width, relheight=1)
 
 
-def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
+def setup_left_frame(tree, playlists_data, on_select_tree_item, center_frame_entries):
     # TREEVIEW
     style = ttk.Style()
     style.configure(
@@ -160,7 +145,7 @@ def setup_left_frame(tree, playlists_data, on_select, center_frame_entries):
     textentry_folder, textentry_playlist, textentry_url = center_frame_entries
     tree.bind(
         "<<TreeviewSelect>>",
-        lambda event: on_select(
+        lambda event: on_select_tree_item(
             event,
             tree,
             textentry_folder,
@@ -534,7 +519,7 @@ def download(config, playlists_data, text_widget):
 # --- Funktionen zum Bearbeiten der Playlist-Daten ---
 
 
-def on_select(
+def on_select_tree_item(
     event, tree, textentry_folder, textentry_playlist, textentry_url, playlists_data
 ):
     tree_selected_item = tree.focus()
@@ -906,30 +891,6 @@ def remove_item(tree, playlists_data):
     save_playlists(playlists_data)
 
 
-def create_progress_display(root):
-    progress_display = tk.Text(
-        root,
-        width=50,
-        wrap=tk.WORD,
-        bg="black",
-        fg="white",
-        highlightthickness=1,  # Dünne Umrandung
-        highlightbackground="pink",  # Farbe der Umrandung
-        highlightcolor="pink",  # Farbe, wenn es den Fokus hat
-        relief="ridge",  # Stil der Umrandung
-        bd=1,  # Dicke der Umrandung
-    )
-    progress_display.tag_configure("orange", foreground="orange")
-    progress_display.tag_configure("black", foreground="black")
-    progress_display.tag_configure("red", foreground="red")
-    progress_display.tag_configure("green", foreground="green")
-    progress_display.tag_configure("white", foreground="white")
-    progress_display.tag_configure("yellow", foreground="yellow")
-
-    progress_display.insert(1.0, welcome_text)
-    return progress_display
-
-
 # --- Main-Funktion ---
 
 
@@ -961,7 +922,7 @@ def main():
     center_frame_entries = setup_center_frame(
         root, playlists_data, tree, config=config, progress_display=progress_display
     )
-    setup_left_frame(tree, playlists_data, on_select, center_frame_entries)
+    setup_left_frame(tree, playlists_data, on_select_tree_item, center_frame_entries)
     setup_right_frame(root, progress_display)
 
     # Konfiguriere die Spalten des root Fensters
