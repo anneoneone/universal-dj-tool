@@ -906,25 +906,7 @@ def remove_item(tree, playlists_data):
     save_playlists(playlists_data)
 
 
-# --- Main-Funktion ---
-
-
-def main():
-    playlists_data = load_playlists()
-    config = load_config()
-
-    root = tk.Tk()
-    root.title("uDJ Tool")
-    root.configure(bg="black")
-    root.geometry(WINDOW_SIZE)
-    root.resizable(False, False)
-
-    # tk.Label(root, bg="#FF2288", height=100, width=3).grid(
-    #     row=0, column=0, columnspan=10, rowspan=10, padx=5, pady=5, sticky="nw"
-    # )
-
-    # create_stripes(root, 30, PRIMARY_COLOR, SECONDARY_COLOR)
-
+def create_progress_display(root):
     progress_display = tk.Text(
         root,
         width=50,
@@ -945,6 +927,29 @@ def main():
     progress_display.tag_configure("yellow", foreground="yellow")
 
     progress_display.insert(1.0, welcome_text)
+    return progress_display
+
+
+# --- Main-Funktion ---
+
+
+def main():
+    playlists_data = load_playlists()
+    config = load_config()
+
+    root = tk.Tk()
+    root.title("uDJ Tool")
+    root.configure(bg="black")
+    root.geometry(WINDOW_SIZE)
+    root.resizable(False, False)
+
+    # tk.Label(root, bg="#FF2288", height=100, width=3).grid(
+    #     row=0, column=0, columnspan=10, rowspan=10, padx=5, pady=5, sticky="nw"
+    # )
+
+    # create_stripes(root, 30, PRIMARY_COLOR, SECONDARY_COLOR)
+
+    progress_display = create_progress_display(root)
 
     left_frame = tk.Frame(root, bg=PRIMARY_COLOR, width=200)
     left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nswe")
