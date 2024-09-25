@@ -2,14 +2,14 @@ import tkinter as tk
 
 from modules.HoverLabel import create_hover_label
 from modules.center_frame_utils import (
-    create_folder,
-    create_playlist,
-    update_item,
-    remove_item,
-    select_quality,
-    select_convert,
-    download,
+    tree_create_folder,
+    tree_create_playlist,
+    tree_update_item,
+    tree_remove_item,
+    set_quality_setting,
+    set_file_convert_setting,
 )
+from modules.utils import download
 from modules.constants import (
     PRIMARY_COLOR,
     SECONDARY_COLOR,
@@ -97,11 +97,13 @@ def create_buttons_ui(
     progress_display,
 ):
     # Create buttons for actions like create, add, update, remove
-    # BUTTONS: CREATE_FOLDER, ADD_PLAYLIST, UPDATE, REMOVE
+    # BUTTONS: tree_create_folder, ADD_PLAYLIST, UPDATE, REMOVE
     create_hover_label(
         center_frame,
         "Create Folder",
-        lambda: create_folder(tree, textentry_folder, playlists_data, progress_display),
+        lambda: tree_create_folder(
+            tree, textentry_folder, playlists_data, progress_display
+        ),
         bg="black",
         fg="white",
     ).grid(
@@ -116,7 +118,7 @@ def create_buttons_ui(
     create_hover_label(
         center_frame,
         "Add Playlist",
-        lambda: create_playlist(
+        lambda: tree_create_playlist(
             tree,
             textentry_folder,
             textentry_playlist,
@@ -138,7 +140,7 @@ def create_buttons_ui(
     create_hover_label(
         center_frame,
         "Update",
-        lambda: update_item(
+        lambda: tree_update_item(
             tree,
             textentry_folder,
             textentry_playlist,
@@ -160,7 +162,7 @@ def create_buttons_ui(
     create_hover_label(
         center_frame,
         "Delete",
-        lambda: remove_item(tree, playlists_data),
+        lambda: tree_remove_item(tree, playlists_data),
         bg="black",
         fg="white",
     ).grid(
@@ -211,7 +213,9 @@ def create_quality_ui(center_frame):
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
         label.bind(
             "<Button-1>",
-            lambda event, label=label, text=text: select_quality(event, label, text),
+            lambda event, label=label, text=text: set_quality_setting(
+                event, label, text
+            ),
         )
 
 
@@ -237,7 +241,9 @@ def create_convert_ui(center_frame):
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
         label.bind(
             "<Button-1>",
-            lambda event, label=label, t=text: select_convert(event, label, text),
+            lambda event, label=label, t=text: set_file_convert_setting(
+                event, label, text
+            ),
         )
 
 

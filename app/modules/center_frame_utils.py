@@ -26,7 +26,7 @@ def set_quality_setting(event, label, quality):
     print(f"Selected quality: {quality_mode}")
 
 
-def select_convert(event, label, convert):
+def set_file_convert_setting(event, label, convert):
     global active_convert_label, convert_mode
     # Setze die Hintergrundfarbe des vorherigen Labels zurück
     if active_convert_label:
@@ -41,7 +41,7 @@ def select_convert(event, label, convert):
     print(f"Selected convert: {convert_mode}")
 
 
-def find_item_by_name(tree, name):
+def tree_find_item_by_name(tree, name):
     # Diese Funktion durchsucht den Treeview nach einem Element mit dem gegebenen Namen.
     for item in tree.get_children():
         if tree.item(item, "text") == name:
@@ -49,7 +49,7 @@ def find_item_by_name(tree, name):
     return None
 
 
-def create_folder(tree, textentry_folder, playlists_data, progress_display):
+def tree_create_folder(tree, textentry_folder, playlists_data, progress_display):
     folder_name = textentry_folder.get()
 
     if not folder_name:
@@ -69,14 +69,14 @@ def create_folder(tree, textentry_folder, playlists_data, progress_display):
         return new_folder_id
     else:
         # Wenn der Ordner bereits existiert, finde und gib seine ID zurück
-        existing_folder_id = find_item_by_name(tree, folder_name)
+        existing_folder_id = tree_find_item_by_name(tree, folder_name)
         if existing_folder_id:
             return existing_folder_id
         else:
             return 0
 
 
-def create_playlist(
+def tree_create_playlist(
     tree,
     textentry_folder_obj,
     textentry_playlist_obj,
@@ -109,7 +109,7 @@ def create_playlist(
 
     if not tree_has_item and textentry_folder_has_item:
         selected_folder_name = textentry_folder_name
-        selected_folder_id = create_folder(
+        selected_folder_id = tree_create_folder(
             tree, textentry_folder_obj, playlists_data, progress_display
         )
     elif tree_has_item and not textentry_folder_has_item:
@@ -117,7 +117,7 @@ def create_playlist(
         selected_folder_id = tree_folder_id
     elif tree_has_item and textentry_folder_has_item:
         selected_folder_name = textentry_folder_name
-        selected_folder_id = create_folder(
+        selected_folder_id = tree_create_folder(
             tree, textentry_folder_obj, playlists_data, progress_display
         )
     elif not tree_has_item and not textentry_folder_has_item:
@@ -186,7 +186,7 @@ def create_playlist(
     return
 
 
-def update_folder(tree, textentry_folder, playlists_data, progress_display):
+def tree_update_folder(tree, textentry_folder, playlists_data, progress_display):
     # Holen des ausgewählten Elements im Treeview
     selected_item = tree.focus()  # Holt die ID des ausgewählten Elements
 
@@ -238,7 +238,7 @@ def update_folder(tree, textentry_folder, playlists_data, progress_display):
         )
 
 
-def update_playlist(
+def tree_update_playlist(
     tree,
     textentry_folder,
     textentry_playlist,
@@ -331,7 +331,7 @@ def update_playlist(
             )
 
 
-def update_item(
+def tree_update_item(
     tree,
     textentry_folder,
     textentry_playlist,
@@ -348,9 +348,9 @@ def update_item(
         return
 
     if not tree.parent(tree_selected_item_id):
-        update_folder(tree, textentry_folder, playlists_data, progress_display)
+        tree_update_folder(tree, textentry_folder, playlists_data, progress_display)
     else:
-        update_playlist(
+        tree_update_playlist(
             tree,
             textentry_folder,
             textentry_playlist,
@@ -362,7 +362,9 @@ def update_item(
     return
 
 
-def remove_item(tree, playlists_data):
+def tree_remove_item(tree, playlists_data):
+    # TODO: Add error handling if nothing is selected
+
     # Aktuell ausgewähltes Element im Treeview
     tree_selected_item = tree.focus()
     item_text = tree.item(tree_selected_item, "text")
