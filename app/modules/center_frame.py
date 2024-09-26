@@ -9,6 +9,7 @@ from modules.center_frame_utils import (
     set_quality_mode,
     set_convert_mode,
     download,
+    stop_tidal_dl,
 )
 from modules.constants import (
     PRIMARY_COLOR,
@@ -293,7 +294,7 @@ def create_download_buttons_ui(center_frame, playlists_data, progress_display):
     ).grid(
         row=ROWS["DOWNLOAD_BUTTONS"],
         column=0,
-        columnspan=2,
+        columnspan=1,
         padx=5,
         pady=5,
         sticky="ew",
@@ -307,8 +308,24 @@ def create_download_buttons_ui(center_frame, playlists_data, progress_display):
         fg="white",
     ).grid(
         row=ROWS["DOWNLOAD_BUTTONS"],
+        column=1,
+        columnspan=1,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
+
+    # Button für "Abbrechen"
+    create_hover_label(
+        center_frame,
+        "Cancel Download",
+        lambda: stop_tidal_dl(progress_display),  # Funktion, um den Prozess zu stoppen
+        bg="red",
+        fg="white",
+    ).grid(
+        row=ROWS["DOWNLOAD_BUTTONS"],
         column=2,
-        columnspan=2,
+        columnspan=1,
         padx=5,
         pady=5,
         sticky="ew",

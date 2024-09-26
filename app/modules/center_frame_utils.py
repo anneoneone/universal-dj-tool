@@ -1,6 +1,8 @@
 import tkinter as tk
 import subprocess
 import threading
+import os
+import signal
 
 from modules.progress_display import print_progress_display
 from modules.utils import save_playlists, get_config_par, set_config_par, save_config
@@ -8,6 +10,9 @@ from modules.constants import (
     ACTIVE_LABEL_BG,
     INACTIVE_LABEL_BG,
 )
+
+current_process = None
+is_downloading = False
 
 quality_mode = None
 convert_mode = None
@@ -55,41 +60,47 @@ def set_convert_mode(event=None, label=None, convert=None):
 
 # download functions
 def run_tidal_dl(link, download_dir, text_widget):
-    global quality_mode
+    global current_process, quality_mode, is_downloading
     print("quality_mode: " + quality_mode)
 
-    process = subprocess.Popen(
-        [
-            "tidal-dl",
-            "--link",
-            link,
-            "--output",
-            download_dir,
-            "--quality",
-            quality_mode,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-    )
+    if is_downloading:
+        current_process = subprocess.Popen(
+            [
+                "tidal-dl",
+                "--link",
+                link,
+                "--output",
+                download_dir,
+                "--quality",
+                quality_mode,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            preexec_fn=os.setsid  # Setzt den Prozess in eine eigene Prozessgruppe
+        )
 
-    def update_text_widget(stream):
-        for line in iter(stream.readline, ""):
-            text_widget.insert(tk.END, line)
-            text_widget.see(tk.END)  # Scroll to the end of the Text widget
-        stream.close()
+        def update_text_widget(stream):
+            for line in iter(stream.readline, ""):
+                text_widget.insert(tk.END, line)
+                text_widget.see(tk.END)  # Scroll to the end of the Text widget
+            stream.close()
 
-    threading.Thread(target=update_text_widget, args=(process.stdout,)).start()
-    threading.Thread(target=update_text_widget, args=(process.stderr,)).start()
+        threading.Thread(target=update_text_widget, args=(current_process.stdout,)).start()
+        threading.Thread(target=update_text_widget, args=(current_process.stderr,)).start()
 
-    process.wait()
-    text_widget.insert(tk.END, "\nDownload completed.\n")
-    text_widget.see(tk.END)
+        current_process.wait()
+        text_widget.insert(tk.END, "\nDownload completed.\n")
+        text_widget.see(tk.END)
+        is_downloading = False
 
 
 def download(playlists_data, text_widget):
     def download_thread():
+        global is_downloading
+        is_downloading = True
+
         music_directory = get_config_par("music_directory")
 
         for category_name, category_playlists in playlists_data.items():
@@ -99,6 +110,16 @@ def download(playlists_data, text_widget):
 
     threading.Thread(target=download_thread).start()
 
+
+def stop_tidal_dl(text_widget):
+    global current_process, is_downloading
+    if current_process is not None:
+        # Beende die gesamte Prozessgruppe
+        os.killpg(os.getpgid(current_process.pid), signal.SIGTERM)
+        current_process = None
+        is_downloading = False
+        text_widget.insert(tk.END, "\nDownload aborted.\n")
+        text_widget.see(tk.END)
 
 # tree functions
 def tree_find_item_by_name(tree, name):
