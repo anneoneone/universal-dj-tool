@@ -6,10 +6,10 @@ from modules.center_frame_utils import (
     tree_create_playlist,
     tree_update_item,
     tree_remove_item,
-    set_quality_setting,
-    set_file_convert_setting,
+    set_quality_mode,
+    set_convert_mode,
+    download,
 )
-from modules.utils import download
 from modules.constants import (
     PRIMARY_COLOR,
     SECONDARY_COLOR,
@@ -17,7 +17,7 @@ from modules.constants import (
     convert_buttons,
     ROWS,
 )
-
+from modules.utils import get_config_par
 
 def create_center_frame(root):
     center_frame = tk.Frame(root, bg="black", width=200)
@@ -199,6 +199,8 @@ def create_quality_ui(center_frame):
         sticky="w",
     )
 
+    quality_mode_label_list = []
+
     for text, col in quality_buttons:
         label = tk.Label(
             center_frame,
@@ -210,13 +212,28 @@ def create_quality_ui(center_frame):
         )
         label.grid(row=ROWS["QUALITY_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
 
+        quality_mode_label_list.append(label)
+
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
         label.bind(
             "<Button-1>",
-            lambda event, label=label, text=text: set_quality_setting(
-                event, label, text
+            lambda event, label=label, text=text: set_quality_mode(
+                event=event, label=label, quality=text
             ),
         )
+
+    # set quality label active from config
+    config_quality_mode = get_config_par('quality_mode')
+    quality_index = next(
+        (
+            index
+            for index, (text, _) in enumerate(quality_buttons)
+            if text == config_quality_mode
+        ),
+        0,
+    )
+    active_label = quality_mode_label_list[quality_index]
+    set_quality_mode(label=active_label, quality=quality_buttons[quality_index][0])
 
 
 def create_convert_ui(center_frame):
@@ -226,6 +243,8 @@ def create_convert_ui(center_frame):
     tk.Label(center_frame, text="Convert", bg=SECONDARY_COLOR, fg="white").grid(
         row=ROWS["CONVERT_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
     )
+
+    convert_mode_label_list = []
 
     for text, col in convert_buttons:
         label = tk.Label(
@@ -238,22 +257,37 @@ def create_convert_ui(center_frame):
         )
         label.grid(row=ROWS["CONVERT_BUTTONS"], column=col, padx=5, pady=5, sticky="w")
 
+        convert_mode_label_list.append(label)
+
         # Füge ein Bind-Event hinzu, um die Label-Funktion beim Klicken aufzurufen
         label.bind(
             "<Button-1>",
-            lambda event, label=label, t=text: set_file_convert_setting(
-                event, label, text
+            lambda event, label=label, text=text: set_convert_mode(
+                event=event, label=label, convert=text
             ),
         )
 
+    # set convert label active from config
+    config_convert_mode = get_config_par('convert_mode')
+    convert_index = next(
+        (
+            index
+            for index, (text, _) in enumerate(convert_buttons)
+            if text == config_convert_mode
+        ),
+        0,
+    )
+    active_label = convert_mode_label_list[convert_index]
+    set_convert_mode(label=active_label, convert=convert_buttons[convert_index][0])
 
-def create_download_buttons_ui(center_frame, config, playlists_data, progress_display):
+
+def create_download_buttons_ui(center_frame, playlists_data, progress_display):
     # Create buttons for downloading selected and all items
     # BUTTONS DOWNLOAD_SELECTED, DOWNLOAD_ALL
     create_hover_label(
         center_frame,
         "Download Selected",
-        lambda: download(config, playlists_data, progress_display),
+        lambda: download(playlists_data, progress_display),
         bg="#004499",
         fg="white",
     ).grid(
@@ -268,7 +302,7 @@ def create_download_buttons_ui(center_frame, config, playlists_data, progress_di
     create_hover_label(
         center_frame,
         "Download All",
-        lambda: download(config, playlists_data, progress_display),
+        lambda: download(playlists_data, progress_display),
         bg="#009944",
         fg="white",
     ).grid(
@@ -281,7 +315,7 @@ def create_download_buttons_ui(center_frame, config, playlists_data, progress_di
     )
 
 
-def setup_center_frame(root, playlists_data, tree, config, progress_display):
+def setup_center_frame(root, playlists_data, tree, progress_display):
     center_frame = create_center_frame(root)
     textentry_folder = create_folder_ui(center_frame)
     textentry_playlist = create_playlist_ui(center_frame)
@@ -298,6 +332,6 @@ def setup_center_frame(root, playlists_data, tree, config, progress_display):
     )
     create_quality_ui(center_frame)
     create_convert_ui(center_frame)
-    create_download_buttons_ui(center_frame, config, playlists_data, progress_display)
+    create_download_buttons_ui(center_frame, playlists_data, progress_display)
 
     return textentry_folder, textentry_playlist, textentry_url

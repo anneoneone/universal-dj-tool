@@ -1,2 +1,4 @@
 download_format: m4a
 music_directory: /Users/anton/OneDrive/Musik/DJ/
+convert_mode: Don't Convert
+quality_mode: High

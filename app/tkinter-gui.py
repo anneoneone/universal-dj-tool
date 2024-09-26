@@ -8,6 +8,7 @@ from modules.progress_display import create_progress_display
 from modules.constants import (
     WINDOW_SIZE,
     PRIMARY_COLOR,
+    CONFIG_FILE,
 )
 
 
@@ -15,7 +16,7 @@ from modules.constants import (
 
 
 def create_stripes(root, stripe_width, stripe_color_1, stripe_color_2):
-    # Berechne die Anzahl der Streifen basierend auf der Fensterbreite und der Streifenbreite
+    # Berechne die Anzahl der Streifen basierend auf Fensterbreite und Streifenbreite
     window_width = root.winfo_screenwidth()
     num_stripes = window_width // stripe_width
 
@@ -35,12 +36,6 @@ def setup_right_frame(root, progress_display):
     root.grid_columnconfigure(
         2, weight=1
     )  # Adjust weight to 1 for equal width distribution
-
-
-# --- Download- und Subprozess-Funktionen ---
-
-
-# --- Funktionen zum Bearbeiten der Playlist-Daten ---
 
 
 def on_select_tree_item(
@@ -69,7 +64,7 @@ def on_select_tree_item(
 
 def main():
     playlists_data = load_playlists()
-    config = load_config()
+    load_config(CONFIG_FILE)
 
     root = tk.Tk()
     root.title("uDJ Tool")
@@ -93,7 +88,7 @@ def main():
     tree = ttk.Treeview(left_frame)
 
     center_frame_entries = setup_center_frame(
-        root, playlists_data, tree, config=config, progress_display=progress_display
+        root, playlists_data, tree, progress_display=progress_display
     )
     setup_left_frame(tree, playlists_data, on_select_tree_item, center_frame_entries)
     setup_right_frame(root, progress_display)

@@ -1,5 +1,9 @@
+import tkinter as tk
+import subprocess
+import threading
+
 from modules.progress_display import print_progress_display
-from modules.utils import save_playlists
+from modules.utils import save_playlists, get_config_par, set_config_par, save_config
 from modules.constants import (
     ACTIVE_LABEL_BG,
     INACTIVE_LABEL_BG,
@@ -11,8 +15,9 @@ active_quality_label = None  # Speichert das aktuell aktive Label
 active_convert_label = None  # Speichert das aktuell aktive Label
 
 
-def set_quality_setting(event, label, quality):
+def set_quality_mode(event=None, label=None, quality=None):
     global active_quality_label, quality_mode
+
     # Setze die Hintergrundfarbe des vorherigen Labels zurück
     if active_quality_label:
         active_quality_label.config(bg=INACTIVE_LABEL_BG)
@@ -23,11 +28,15 @@ def set_quality_setting(event, label, quality):
 
     # Aktualisiere den ausgewählten Qualitätsmodus
     quality_mode = quality
+
+    set_config_par('quality_mode', quality_mode)
+    save_config()
     print(f"Selected quality: {quality_mode}")
 
 
-def set_file_convert_setting(event, label, convert):
+def set_convert_mode(event=None, label=None, convert=None):
     global active_convert_label, convert_mode
+
     # Setze die Hintergrundfarbe des vorherigen Labels zurück
     if active_convert_label:
         active_convert_label.config(bg=INACTIVE_LABEL_BG)
@@ -38,9 +47,60 @@ def set_file_convert_setting(event, label, convert):
 
     # Aktualisiere den ausgewählten Qualitätsmodus
     convert_mode = convert
+
+    set_config_par('convert_mode', convert_mode)
+    save_config()
     print(f"Selected convert: {convert_mode}")
 
 
+# download functions
+def run_tidal_dl(link, download_dir, text_widget):
+    global quality_mode
+    print("quality_mode: " + quality_mode)
+
+    process = subprocess.Popen(
+        [
+            "tidal-dl",
+            "--link",
+            link,
+            "--output",
+            download_dir,
+            "--quality",
+            quality_mode,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
+
+    def update_text_widget(stream):
+        for line in iter(stream.readline, ""):
+            text_widget.insert(tk.END, line)
+            text_widget.see(tk.END)  # Scroll to the end of the Text widget
+        stream.close()
+
+    threading.Thread(target=update_text_widget, args=(process.stdout,)).start()
+    threading.Thread(target=update_text_widget, args=(process.stderr,)).start()
+
+    process.wait()
+    text_widget.insert(tk.END, "\nDownload completed.\n")
+    text_widget.see(tk.END)
+
+
+def download(playlists_data, text_widget):
+    def download_thread():
+        music_directory = get_config_par("music_directory")
+
+        for category_name, category_playlists in playlists_data.items():
+            for link_name, link in category_playlists.items():
+                download_dir = f"{music_directory}/{category_name}/{link_name}"
+                run_tidal_dl(link, download_dir, text_widget)
+
+    threading.Thread(target=download_thread).start()
+
+
+# tree functions
 def tree_find_item_by_name(tree, name):
     # Diese Funktion durchsucht den Treeview nach einem Element mit dem gegebenen Namen.
     for item in tree.get_children():
