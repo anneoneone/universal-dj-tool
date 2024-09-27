@@ -10,6 +10,8 @@ from modules.center_frame_utils import (
     set_convert_mode,
     download,
     stop_tidal_dl,
+    select_folder,
+    shorten_path,
 )
 from modules.constants import (
     PRIMARY_COLOR,
@@ -20,12 +22,49 @@ from modules.constants import (
 )
 from modules.utils import get_config_par
 
+
 def create_center_frame(root):
-    center_frame = tk.Frame(root, bg="black", width=200)
+    center_frame = tk.Frame(root, bg="black") #, width=200)
     center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nswe")
     for i in range(4):
         center_frame.grid_columnconfigure(i, weight=1)
     return center_frame
+
+
+def create_root_dir_ui(center_frame):
+    tk.Label(center_frame, text="Download Folder", bg=PRIMARY_COLOR, fg="white").grid(
+        row=ROWS["ROOT_DIR_TITLE_LABEL"], column=0, padx=5, pady=5, sticky="w"
+    )
+    tk.Label(
+        center_frame,
+        text="This is the root folder, where all the playlists will be downloaded.",
+        bg=PRIMARY_COLOR,
+        fg="white",
+        anchor="w",
+    ).grid(row=ROWS["ROOT_DIR_DESC_LABEL"], column=0, columnspan=4, padx=5, pady=5, sticky="we")
+
+    shortened_folder = shorten_path(get_config_par("music_dir"))
+    music_dir_label = tk.Label(
+        center_frame, text=shortened_folder, bg=PRIMARY_COLOR, fg="white", anchor="w"
+    )
+    music_dir_label.grid(
+        row=ROWS["ROOT_DIR_SELECT"], column=0, columnspan=3, padx=5, pady=5, sticky="we"
+    )
+
+    create_hover_label(
+        center_frame,
+        "Select Folder",
+        lambda: select_folder(music_dir_label),
+        bg="black",
+        fg="white",
+    ).grid(
+        row=ROWS["ROOT_DIR_SELECT"],
+        column=3,
+        columnspan=1,
+        padx=5,
+        pady=5,
+        sticky="ew",
+    )
 
 
 def create_folder_ui(center_frame):
@@ -334,6 +373,7 @@ def create_download_buttons_ui(center_frame, playlists_data, progress_display):
 
 def setup_center_frame(root, playlists_data, tree, progress_display):
     center_frame = create_center_frame(root)
+    create_root_dir_ui(center_frame)
     textentry_folder = create_folder_ui(center_frame)
     textentry_playlist = create_playlist_ui(center_frame)
     textentry_url = create_url_ui(center_frame)

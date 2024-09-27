@@ -4,6 +4,7 @@ import threading
 import os
 import signal
 
+from tkinter import filedialog
 from modules.progress_display import print_progress_display
 from modules.utils import save_playlists, get_config_par, set_config_par, save_config
 from modules.constants import (
@@ -18,6 +19,49 @@ quality_mode = None
 convert_mode = None
 active_quality_label = None  # Speichert das aktuell aktive Label
 active_convert_label = None  # Speichert das aktuell aktive Label
+
+
+# Funktion, um einen Ordner auszuwählen
+def select_folder(music_dir_label):
+    config_music_dir = get_config_par("music_dir")
+    folder_selected = filedialog.askdirectory(initialdir=config_music_dir)
+    if folder_selected:  # Wenn ein Ordner ausgewählt wurde
+        print(folder_selected)
+        set_config_par("music_dir", folder_selected)
+        save_config()
+
+        shortened_folder = shorten_path(folder_selected)
+        music_dir_label.config(text=shortened_folder)
+
+
+def shorten_path(path, max_length=60):
+    """Kürzt den Pfad und ersetzt die mittleren Ordner durch '...', wenn er zu lang ist."""
+    if len(path) <= max_length:
+        return path
+
+    # Teile den Pfad in Abschnitte (Ordner)
+    parts = path.split(os.sep)
+
+    # Zeige so viel wie möglich von Anfang und Ende des Pfads, ohne die Länge zu überschreiten
+    # Länge der '...'
+    ellipsis = "..."
+    ellipsis_length = len(ellipsis)
+
+    # Reserviere genug Platz für '...' in der Mitte
+    available_length = max_length - ellipsis_length
+
+    # Baue den gekürzten Pfad auf
+    last_part = []
+
+    # Füge so viele Teile wie möglich zum letzten Abschnitt hinzu
+    for part in reversed(parts):
+        if sum(len(p) + len(os.sep) for p in last_part + [part]) <= available_length:
+            last_part.insert(0, part)
+        else:
+            break
+
+    # Rückgabe des zusammengesetzten Pfads mit '...'
+    return os.sep + ellipsis + os.sep + os.sep.join(last_part)
 
 
 def set_quality_mode(event=None, label=None, quality=None):
