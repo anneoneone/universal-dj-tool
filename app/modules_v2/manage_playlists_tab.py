@@ -30,19 +30,45 @@ class ManagePlaylistsTab(ttk.Frame):
         self.rowconfigure(1, weight=1)     # Untere Zeile für die Musik-Tabelle
 
     def _initialize_left_frame(self):
-        """Initialisiert das linke Frame mit der Listbox für Items."""
+        """Initialisiert das linke Frame mit einem Treeview für Playlists und deren letzte Bearbeitung."""
         self._left_frame = ttk.Frame(self)
         self._left_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        # Label und Listbox für die linke Seite
-        item_list_label = ttk.Label(self._left_frame, text="Available Playlists", font=("Helvetica", 12))
+        # Label und Treeview für die linke Seite
+        item_list_label = ttk.Label(self._left_frame, text="TIDAL Playlists", font=("Helvetica", 12))
         item_list_label.pack(pady=5)
 
-        self._item_listbox = Listbox(self._left_frame)
-        self._item_listbox.pack(fill="both", expand=True)
+        # Treeview mit zwei Spalten: Name und letzte Bearbeitung
+        self._playlist_treeview = ttk.Treeview(self._left_frame, columns=("name", "last_modified"), show="headings")
+        self._playlist_treeview.heading(
+            "name",
+            text="TIDAL Playlist",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(
+                self._playlist_treeview, "name", False
+            ),
+        )
+        self._playlist_treeview.heading(
+            "last_modified",
+            text="Last Modified",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(
+                self._playlist_treeview, "last_modified", False
+            ),
+        )
+
+        # Setze die Spaltenausrichtung und Breite
+        self._playlist_treeview.column("name", anchor=W, width=150)
+        self._playlist_treeview.column("last_modified", anchor=W, width=50)
+
+        # Packe das Treeview in das Frame
+        self._playlist_treeview.pack(fill="both", expand=True)
 
         # Playlists von Tidal anzeigen, wenn der left_frame geladen wird
-        self.tidal_login.display_user_playlists(self._item_listbox)
+        self.tidal_login.display_user_playlists(self._playlist_treeview)
+
+        # Event-Handler hinzufügen für Treeview-Auswahl
+        self._playlist_treeview.bind("<<TreeviewSelect>>", self.on_playlist_select)
 
     def _initialize_button_frame(self):
         """Initialisiert das mittlere Frame mit den vertikal angeordneten Buttons."""
@@ -82,19 +108,125 @@ class ManagePlaylistsTab(ttk.Frame):
         self._music_table_frame = ttk.Frame(self)
         self._music_table_frame.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=10, pady=10)
 
-        self._music_table = ttk.Treeview(self._music_table_frame, columns=("title", "artist", "length"), show="headings")
-        self._music_table.heading("title", text="Titel")
-        self._music_table.heading("artist", text="Interpret")
-        self._music_table.heading("length", text="Länge")
+        # Erweiterte Spalten für detaillierte Track-Informationen
+        self._music_table = ttk.Treeview(
+            self._music_table_frame,
+            columns=("title", "artist", "length", "album", "release_year", "popularity", "version"),
+            show="headings"
+        )
 
-        # Set column widths
-        self._music_table.column("title", anchor=W, width=200)
+        # Stil für die Header linksbündig setzen
+        style = ttk.Style()
+        style.configure("Treeview.Heading", anchor="w")  # 'w' steht für 'west' (links)
+
+        # Definiere die Spaltenüberschriften und stelle sicher, dass der Text linksbündig ist
+        self._music_table.heading(
+            "title",
+            text="Title",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(self._music_table, "title", False),
+        )
+        self._music_table.heading(
+            "artist",
+            text="Artist",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(self._music_table, "artist", False),
+        )
+        self._music_table.heading(
+            "length",
+            text="Duration",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(self._music_table, "length", False),
+        )
+        self._music_table.heading(
+            "album",
+            text="Album",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(self._music_table, "album", False),
+        )
+        self._music_table.heading(
+            "release_year",
+            text="Release",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(
+                self._music_table, "release_year", False
+            ),
+        )
+        self._music_table.heading(
+            "popularity",
+            text="Popularity",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(
+                self._music_table, "popularity", False
+            ),
+        )
+        self._music_table.heading(
+            "version",
+            text="Version",
+            anchor="w",
+            command=lambda: self.sort_treeview_column(
+                self._music_table, "version", False
+            ),
+        )
+
+        # Setze die Ausrichtung der Spalten auf links
+        self._music_table.column("title", anchor=W, width=220)
         self._music_table.column("artist", anchor=W, width=150)
-        self._music_table.column("length", anchor=CENTER, width=80)
+        self._music_table.column("length", anchor=W, width=80)
+        self._music_table.column("album", anchor=W, width=150)
+        self._music_table.column("release_year", anchor=W, width=50)
+        self._music_table.column("popularity", anchor=W, width=70)
+        self._music_table.column("version", anchor=W, width=100)
 
+        # Packe das Treeview in das Frame
         self._music_table.pack(fill="both", expand=True)
 
-    # Öffentliche Methoden für die Interaktion mit der UI
+    def sort_treeview_column(self, treeview, col, reverse):
+        """Sortiert die Spalten des Treeview, unter Berücksichtigung des Datentyps."""
+        # Extrahiere die Daten aus der Spalte
+        data = []
+        for k in treeview.get_children(''):
+            value = treeview.set(k, col)
+
+            # Versuche den Wert in einen Integer oder Float zu konvertieren, falls es numerisch ist
+            try:
+                value = int(value)
+            except ValueError:
+                try:
+                    value = float(value)
+                except ValueError:
+                    pass  # Wert bleibt ein String, wenn er nicht numerisch ist
+
+            data.append((value, k))
+
+        # Sortiere die Daten
+        data.sort(reverse=reverse)
+
+        # Neu anordnen im Treeview
+        for index, (_, k) in enumerate(data):
+            treeview.move(k, '', index)
+
+        # Sortierrichtung umkehren für die nächste Sortierung
+        treeview.heading(col, command=lambda: self.sort_treeview_column(treeview, col, not reverse))
+
+    def on_playlist_select(self, event):
+        """Event-Handler, der ausgeführt wird, wenn eine Playlist im Treeview ausgewählt wird."""
+        try:
+            # Aktuelle Auswahl abrufen
+            selected_item = self._playlist_treeview.selection()
+            if selected_item:
+                # Abrufen der Werte der ausgewählten Playlist
+                item = self._playlist_treeview.item(selected_item)
+                playlist_name = item['values'][0]  # Der Name der Playlist befindet sich in der ersten Spalte
+
+                # Suche die entsprechende Playlist anhand des Namens
+                selected_playlist = next((pl for pl in self.tidal_login.playlists if pl.name == playlist_name), None)
+
+                if selected_playlist:
+                    # Playlist-Tracks im music_table anzeigen
+                    self.tidal_login.display_playlist_tracks(selected_playlist, self._music_table)
+        except IndexError:
+            pass  # Falls die Auswahl ungültig ist, wird nichts gemacht
 
     def add_item_to_list(self, item):
         """Fügt ein Item zur linken Listbox hinzu."""

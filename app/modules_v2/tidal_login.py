@@ -17,6 +17,7 @@ class TidalLogin:
         """Helper function to print messages in text_widget."""
         if self.text_widget:
             self.text_widget.configure(text=message)
+            print(message)
         else:
             print(message)
 
@@ -105,17 +106,62 @@ class TidalLogin:
         if self.on_success:
             self.text_widget.after(2000, self.on_success)  # Warte 1 Sekunde (1000 ms) und führe on_success aus
 
-    def display_user_playlists(self, listbox_widget):
-        """Displays all playlists of the currently logged-in user in the provided Listbox widget."""
+    def display_user_playlists(self, treeview_widget):
+        """Displays all playlists of the currently logged-in user in the provided Treeview widget."""
         try:
-            playlists = self.session.user.playlists()
-            if playlists:
+            self.playlists = self.session.user.playlists()  # Playlists speichern für spätere Nutzung
+            if self.playlists:
                 self.log_message("User's Playlists:", tag="green")
-                listbox_widget.delete(0, "end")  # Vorherige Inhalte löschen
-                for playlist in playlists:
-                    listbox_widget.insert("end", playlist.name)
-                    self.log_message(f" - {playlist.name} (ID: {playlist.id})", tag="white")
+                treeview_widget.delete(*treeview_widget.get_children())  # Vorherige Inhalte löschen
+                for playlist in self.playlists:
+                    # Hole das Datum der letzten Bearbeitung
+                    last_modified = playlist.last_updated.strftime("%Y-%m-%d") if playlist.last_updated else "Unknown"
+
+                    # Füge die Playlist in das Treeview ein
+                    treeview_widget.insert("", "end", values=(playlist.name, last_modified))
+                    self.log_message(f" - {playlist.name} (Last Modified: {last_modified})", tag="white")
             else:
                 self.log_message("No playlists found for this user.", tag="yellow")
         except Exception as e:
             self.log_message(f"Failed to retrieve playlists: {str(e)}", tag="red")
+
+    def display_playlist_tracks(self, playlist, music_table):
+        """Displays all tracks in a given playlist in the provided music_table widget."""
+        try:
+            tracks = playlist.tracks()
+            if tracks:
+                self.log_message(f"Tracks in playlist '{playlist.name}':", tag="blue")
+                music_table.delete(*music_table.get_children())  # Alte Einträge löschen
+
+                for track in tracks:
+                    # Konvertiere die Länge von Sekunden zu Minuten:Sekunden
+                    minutes, seconds = divmod(track.duration, 60)
+                    duration_formatted = f"{minutes}:{seconds:02}"
+
+                    # Verwende `track.tidal_release_date`, um das Veröffentlichungsjahr zu bekommen
+                    if track.tidal_release_date:
+                        release_year = track.tidal_release_date.strftime("%Y")
+                    else:
+                        release_year = "Unknown"
+
+                    # Version des Tracks
+                    version = track.version if track.version else "Standard"
+
+                    # Titel, Interpret, Album, Länge, Popularität, Veröffentlichungsjahr, Version hinzufügen
+                    music_table.insert(
+                        "", "end", 
+                        values=(
+                            track.name,
+                            track.artist.name,
+                            duration_formatted,
+                            track.album.name,
+                            release_year,
+                            track.popularity,
+                            version
+                        )
+                    )
+                    self.log_message(f"Added track '{track.name}' to music table.", tag="white")
+            else:
+                self.log_message(f"No tracks found in playlist '{playlist.name}'.", tag="yellow")
+        except Exception as e:
+            self.log_message(f"Failed to retrieve tracks for playlist '{playlist.name}': {str(e)}", tag="red")
