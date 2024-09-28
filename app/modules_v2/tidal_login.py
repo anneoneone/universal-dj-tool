@@ -104,3 +104,18 @@ class TidalLogin:
         """Schedule the on_success callback after 1 second without blocking the GUI."""
         if self.on_success:
             self.text_widget.after(2000, self.on_success)  # Warte 1 Sekunde (1000 ms) und führe on_success aus
+
+    def display_user_playlists(self, listbox_widget):
+        """Displays all playlists of the currently logged-in user in the provided Listbox widget."""
+        try:
+            playlists = self.session.user.playlists()
+            if playlists:
+                self.log_message("User's Playlists:", tag="green")
+                listbox_widget.delete(0, "end")  # Vorherige Inhalte löschen
+                for playlist in playlists:
+                    listbox_widget.insert("end", playlist.name)
+                    self.log_message(f" - {playlist.name} (ID: {playlist.id})", tag="white")
+            else:
+                self.log_message("No playlists found for this user.", tag="yellow")
+        except Exception as e:
+            self.log_message(f"Failed to retrieve playlists: {str(e)}", tag="red")

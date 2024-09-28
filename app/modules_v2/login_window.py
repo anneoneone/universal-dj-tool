@@ -1,13 +1,13 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from modules_v2.tidal_login import TidalLogin
-from modules_v2.utils import show_frame, hide_frame
-import time
+from modules_v2.utils import hide_frame
 
 class LoginWindow(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent  # Referenz zum Hauptfenster
+        self.on_login_success = None  # Callback für erfolgreichen Login
 
         # Frame auf die komplette Größe des Elternfensters ausdehnen
         self.pack(fill="both", expand=True)
@@ -32,17 +32,18 @@ class LoginWindow(ttk.Frame):
     def on_button_click(self):
         # Wenn der Button geklickt wird, Textausgabe ändern
         self.text_label.configure(text="Button wurde geklickt!")
-        tidal = TidalLogin(
+        self.tidal_login = TidalLogin(
             text_widget=self.text_label, 
             url_entry=self.url_entry,
-            on_success=self.on_login_success  # Callback für erfolgreichen Login
+            on_success=self._on_login_success  # Callback für erfolgreichen Login
         )
-        tidal.load_token()
+        self.tidal_login.load_token()
 
         # Falls kein gültiger Token geladen wurde, dann starten wir den Login
-        if not tidal.session.check_login():
-            tidal.login()
+        if not self.tidal_login.session.check_login():
+            self.tidal_login.login()
 
-    def on_login_success(self):
-        # Wenn der Login erfolgreich ist, blenden wir den Hauptframe aus und den zweiten Frame ein
-        hide_frame(self)
+    def _on_login_success(self):
+        # Wenn der Login erfolgreich ist, blenden wir den Hauptframe aus und rufen das Callback auf
+        if self.on_login_success:
+            self.on_login_success(tidal=self.tidal_login)
