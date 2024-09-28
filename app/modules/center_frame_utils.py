@@ -64,6 +64,34 @@ def shorten_path(path, max_length=60):
     return os.sep + ellipsis + os.sep + os.sep.join(last_part)
 
 
+def show_tooltip(event, tooltip, frame):
+    # Hier wird der Tooltip relativ zur Mausposition und dem center_frame angezeigt
+    x = event.x + event.widget.winfo_x() + 10  # Offset von 10 Pixeln, um die Tooltip-Position anzupassen
+    y = event.y + event.widget.winfo_y() + 10  # Offset von 10 Pixeln, um die Tooltip-Position anzupassen
+    tooltip.place(x=x, y=y, in_=frame)  # Tooltip innerhalb des Frames platzieren
+    tooltip.lift()
+
+
+# Funktion zum Verbergen des Tooltips
+def hide_tooltip(tooltip):
+    tooltip.place_forget()
+
+
+def create_tooltip(frame, label, text):
+    # Tooltip-Label erstellen (zunächst unsichtbar)
+    tooltip = tk.Label(
+        frame,
+        text=text,
+        bg="yellow",
+        fg="black",
+        wraplength=200,
+    )
+
+    # Ereignisse für Mouseover und Mouseout binden
+    label.bind("<Enter>", lambda event: show_tooltip(event, tooltip, frame))
+    label.bind("<Leave>", lambda event: hide_tooltip(tooltip))
+
+
 def set_quality_mode(event=None, label=None, quality=None):
     global active_quality_label, quality_mode
 
