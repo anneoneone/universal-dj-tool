@@ -1,12 +1,13 @@
 import ttkbootstrap as ttk
 from modules_v2.login_window import LoginWindow
-from modules_v2.app_window import AppWindow
+from modules_v2.AppWindow import AppWindow
 from modules_v2.utils import show_frame, hide_frame
+
 
 # Hauptprogramm (main)
 def main():
     # Hauptfenster der Anwendung erstellen
-    app = ttk.Window(themename="darkly")
+    app = ttk.Window(themename="solar")
     app.title("Hauptfenster mit Login")
     app.geometry("1200x800")
 
@@ -16,7 +17,7 @@ def main():
     # Event-Handler für erfolgreichen Login und Weitergabe der Tidal-Instanz
     def on_login_success(tidal):
         hide_frame(login_frame)
-        # AppWindow mit der übergebenen TidalLogin-Instanz erzeugen
+        # AppWindow mit der übergebenen TidalApiClass-Instanz erzeugen
         app_frame = AppWindow(app, tidal)
         show_frame(app_frame)
 

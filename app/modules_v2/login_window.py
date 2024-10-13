@@ -1,6 +1,6 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from modules_v2.tidal_login import TidalLogin
+from modules_v2.tidal_api import TidalApiClass
 from modules_v2.utils import hide_frame
 
 class LoginWindow(ttk.Frame):
@@ -17,7 +17,7 @@ class LoginWindow(ttk.Frame):
 
     def create_widgets(self):
         # Button in der Mitte des Fensters platzieren
-        self.button = ttk.Button(self, text="Klicke mich", command=self.on_button_click, bootstyle=PRIMARY)
+        self.button = ttk.Button(self, text="Login", command=self.on_button_click, bootstyle=PRIMARY)
         self.button.place(relx=0.5, rely=0.35, anchor="center")
 
         # Textausgabe unter dem Button hinzufügen
@@ -31,19 +31,19 @@ class LoginWindow(ttk.Frame):
 
     def on_button_click(self):
         # Wenn der Button geklickt wird, Textausgabe ändern
-        self.text_label.configure(text="Button wurde geklickt!")
-        self.tidal_login = TidalLogin(
+        self.text_label.configure(text="Login succeeded!")
+        self.tidal_api = TidalApiClass(
             text_widget=self.text_label, 
             url_entry=self.url_entry,
             on_success=self._on_login_success  # Callback für erfolgreichen Login
         )
-        self.tidal_login.load_token()
+        self.tidal_api.load_token()
 
         # Falls kein gültiger Token geladen wurde, dann starten wir den Login
-        if not self.tidal_login.session.check_login():
-            self.tidal_login.login()
+        if not self.tidal_api.session.check_login():
+            self.tidal_api.login()
 
     def _on_login_success(self):
         # Wenn der Login erfolgreich ist, blenden wir den Hauptframe aus und rufen das Callback auf
         if self.on_login_success:
-            self.on_login_success(tidal=self.tidal_login)
+            self.on_login_success(tidal=self.tidal_api)
